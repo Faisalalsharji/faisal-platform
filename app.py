@@ -54,8 +54,6 @@ def main_app():
 
     # اختيار المدة
     period = st.selectbox("اختر المدة", ["1 يوم", "5 أيام", "1 شهر", "3 أشهر", "6 أشهر", "1 سنة"])
-
-    # تحويل المدة لـ yfinance
     period_map = {
         "1 يوم": "1d",
         "5 أيام": "5d",
@@ -68,40 +66,39 @@ def main_app():
 
     # تحميل بيانات السهم
     data = yf.download(selected_stock, period=yf_period, interval="5m")
-    if data.empty:
-        st.warning("لا توجد بيانات متاحة حالياً.")
+    
+    if "Close" not in data.columns or data["Close"].empty:
+        st.warning("لا توجد بيانات سعر حالياً، قد يكون السوق مغلق أو رمز السهم غير صحيح.")
         return
 
-    # حساب السعر الحالي
+    # السعر الحالي
     latest_price = data["Close"][-1]
     sar_price = round(latest_price * USD_TO_SAR, 2)
 
-    # التغير
+    # نسبة التغير
     change_percent = ((data["Close"][-1] - data["Close"][-2]) / data["Close"][-2]) * 100
     color = "green" if change_percent >= 0 else "red"
 
-    # سعر دخول مقترح
-    suggested_entry = 196.00  # كمثال لآبل (تخصيص لاحقًا حسب السهم)
-
-    # عرض تنبيه
+    # سعر دخول مقترح (قيمة ثابتة مؤقتاً)
+    suggested_entry = 196.00
     if latest_price < suggested_entry:
         st.success(f"أقل من السعر المقترح ({suggested_entry} USD) فرصة دخول! السعر الحالي: {round(latest_price, 2)}")
 
-    # عرض السعر
+    # عرض السعر والتغير
     st.markdown(f"### السعر الحالي ({selected_stock})")
     st.markdown(f"<h2 style='color:white;'>{sar_price} ريال ({round(latest_price, 2)} USD)</h2>", unsafe_allow_html=True)
     st.markdown(f"<p style='color:{color};'>تغير: {round(change_percent, 2)}%</p>", unsafe_allow_html=True)
 
-    # رسم بياني
+    # رسم بياني للسعر
     st.line_chart(data["Close"])
 
-    # إضافة إلى قائمة المراقبة (لاحقًا سنفعلها)
+    # زر إضافة للسهم إلى قائمة المراقبة (مستقبلاً سيتم تفعيله بقاعدة بيانات)
     if st.button("أضف إلى قائمة المراقبة"):
-        st.info("تمت الإضافة إلى قائمة المراقبة (قريبًا سيتم حفظها فعلياً)")
+        st.info("تمت الإضافة إلى قائمة المراقبة (قريبًا سيتم الحفظ الفعلي)")
 
     st.caption(f"آخر تحديث: {datetime.now().strftime('%H:%M:%S %d-%m-%Y')}")
 
-# إدارة جلسة الدخول
+# إدارة الجلسة
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
