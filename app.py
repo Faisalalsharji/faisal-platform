@@ -2,34 +2,21 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import matplotlib.pyplot as plt
-import requests
+import datetime
 
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
+INVITE_CODE = "INVITE2025"
 USD_TO_SAR = 3.75
-TELEGRAM_TOKEN = "ضع_توكن_البوت"
-TELEGRAM_CHAT_ID = "ضع_معرّف_الشات"
-WATCHLIST_FILE = "watchlist.csv"
 PORTFOLIO_FILE = "portfolio.csv"
+TRADES_FILE = "trades.csv"
+LANG_AR = "ar"
+LANG_EN = "en"
 
-def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
-    try:
-        requests.post(url, data=data)
-    except:
-        pass
+def detect_lang():
+    return LANG_AR if "ar" in st.get_option("browser.gatherUsageStats") else LANG_EN
 
-def save_watchlist(watchlist):
-    df = pd.DataFrame(watchlist, columns=["stock"])
-    df.to_csv(WATCHLIST_FILE, index=False)
-
-def load_watchlist():
-    try:
-        df = pd.read_csv(WATCHLIST_FILE)
-        return df["stock"].tolist()
-    except:
-        return []
+lang = detect_lang()
 
 def save_portfolio(portfolio):
     df = pd.DataFrame(portfolio)
@@ -39,141 +26,134 @@ def load_portfolio():
     try:
         return pd.read_csv(PORTFOLIO_FILE)
     except:
-        return pd.DataFrame(columns=["stock", "buy_price", "quantity"])
+        return pd.DataFrame(columns=["stock", "buy_price", "quantity", "type", "date"])
 
-def analyze_stock(symbol):
+def save_trades(trades):
+    trades.to_csv(TRADES_FILE, index=False)
+
+def load_trades():
     try:
-        data = yf.Ticker(symbol).history(period="7d")["Close"]
-        if len(data) >= 2:
-            change = data[-1] - data[0]
-            if change > 0:
-                return "سعر السهم في صعود - فرصة شراء"
-            elif change < 0:
-                return "السهم في نزول - لا تشتري الآن"
-            else:
-                return "السهم مستقر"
-        else:
-            return "لا يوجد بيانات كافية"
+        return pd.read_csv(TRADES_FILE)
     except:
-        return "فشل في التحليل"
+        return pd.DataFrame(columns=["stock", "action", "price", "date"])
+
+def rsi(prices, window=14):
+    delta = prices.diff()
+    gain = delta.clip(lower=0)
+    loss = -1 * delta.clip(upper=0)
+    avg_gain = gain.rolling(window=window).mean()
+    avg_loss = loss.rolling(window=window).mean()
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
 
 def login():
     st.title("تسجيل الدخول - منصة فيصل")
     username = st.text_input("اسم المستخدم")
     password = st.text_input("كلمة المرور", type="password")
+    invite = st.text_input("رمز الدعوة")
     if st.button("دخول"):
-        if username == USERNAME and password == PASSWORD:
+        if username == USERNAME and password == PASSWORD and invite == INVITE_CODE:
             st.session_state.logged_in = True
-            st.success("تم تسجيل الدخول بنجاح")
+            st.success("تم تسجيل الدخول")
         else:
-            st.error("اسم المستخدم أو كلمة المرور غير صحيحة")
+            st.error("بيانات الدخول غير صحيحة")
+
+def add_trade_ui():
+    st.subheader("إضافة صفقة")
+    stock = st.text_input("رمز السهم")
+    action = st.selectbox("العملية", ["شراء", "بيع"])
+    price = st.number_input("السعر", min_value=0.0)
+    if st.button("سجل الصفقة"):
+        if stock and price > 0:
+            trades = load_trades()
+            new = pd.DataFrame([{
+                "stock": stock,
+                "action": action,
+                "price": price,
+                "date": datetime.datetime.now().strftime("%Y-%m-%d")
+            }])
+            trades = pd.concat([trades, new], ignore_index=True)
+            save_trades(trades)
+            st.success("تم تسجيل الصفقة")
+
+def dashboard():
+    st.title("الملخص المالي الذكي")
+    trades = load_trades()
+    if not trades.empty:
+        trades["date"] = pd.to_datetime(trades["date"])
+        trades["month"] = trades["date"].dt.to_period("M")
+        summary = trades.groupby("month")["price"].sum()
+        summary.index = summary.index.astype(str)
+        fig, ax = plt.subplots()
+        ax.plot(summary.index, summary.values)
+        ax.set_title("أداء الأرباح/الخسائر الشهرية")
+        st.pyplot(fig)
+
+        goal = 1000000
+        current = summary.sum()
+        percent = (current / goal) * 100
+        st.progress(min(percent/100, 1))
+        st.success(f"التقدم نحو المليون: {current:,.2f} ريال / {goal:,} ريال")
+    else:
+        st.info("لا يوجد صفقات مسجلة بعد.")
+
+def advanced_ai_analysis():
+    st.title("تحليل فني متقدم للأسهم")
+    portfolio = load_portfolio()
+    if not portfolio.empty:
+        for symbol in portfolio["stock"]:
+            try:
+                data = yf.Ticker(symbol).history(period="30d")["Close"]
+                if len(data) >= 15:
+                    score = rsi(data).iloc[-1]
+                    if score > 70:
+                        signal = "بيع (مؤشر RSI مرتفع)"
+                    elif score < 30:
+                        signal = "شراء (RSI منخفض)"
+                    else:
+                        signal = "احتفاظ"
+                    st.write(f"{symbol}: {signal} - RSI: {score:.2f}")
+            except:
+                st.warning(f"فشل تحليل {symbol}")
+    else:
+        st.info("المحفظة فارغة")
+
+def ai_accuracy_report():
+    st.title("تقييم ذكاء التوصيات السابقة")
+    trades = load_trades()
+    if not trades.empty:
+        trades["date"] = pd.to_datetime(trades["date"])
+        win_count = 0
+        total = 0
+        for i, row in trades.iterrows():
+            symbol = row["stock"]
+            price_then = row["price"]
+            try:
+                now = yf.Ticker(symbol).history(period="1d")["Close"].iloc[-1]
+                if (row["action"] == "شراء" and now > price_then) or (row["action"] == "بيع" and now < price_then):
+                    win_count += 1
+                total += 1
+            except:
+                continue
+        if total > 0:
+            percent = (win_count / total) * 100
+            st.success(f"دقة الذكاء الاصطناعي: {percent:.2f}% من التوصيات كانت صحيحة")
+        else:
+            st.info("لا يمكن التقييم حالياً")
+    else:
+        st.info("لا يوجد صفقات للتقييم")
 
 def main_app():
-    st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="centered")
-    st.title("منصة فيصل - الأسهم الذكية")
-    menu = st.sidebar.selectbox("القائمة", ["قائمة المراقبة", "ملخص المحفظة", "إضافة سهم للمحفظة", "تنبيه سعر"])
-
-    if menu == "ملخص المحفظة":
-        st.subheader("ملخص المحفظة")
-        portfolio = load_portfolio()
-        if not portfolio.empty:
-            if st.button("تحديث الأسعار"):
-                prices = []
-                for symbol in portfolio["stock"]:
-                    data = yf.Ticker(symbol)
-                    prices.append(data.history(period="1d")["Close"].iloc[-1])
-                portfolio["current_price"] = prices
-                save_portfolio(portfolio)
-            else:
-                if "current_price" not in portfolio.columns:
-                    prices = []
-                    for symbol in portfolio["stock"]:
-                        data = yf.Ticker(symbol)
-                        prices.append(data.history(period="1d")["Close"].iloc[-1])
-                    portfolio["current_price"] = prices
-                    save_portfolio(portfolio)
-
-            portfolio["gain_loss"] = (portfolio["current_price"] - portfolio["buy_price"]) * portfolio["quantity"]
-            portfolio["total_value_usd"] = portfolio["current_price"] * portfolio["quantity"]
-            portfolio["total_value_sar"] = portfolio["total_value_usd"] * USD_TO_SAR
-            st.dataframe(portfolio)
-
-            total_profit = portfolio["gain_loss"].sum()
-            total_value = portfolio["total_value_sar"].sum()
-            st.info(f"الربح/الخسارة الكلي: {total_profit:,.2f} دولار / {total_profit * USD_TO_SAR:,.2f} ريال")
-            st.success(f"القيمة الحالية للمحفظة: {total_value:,.2f} ريال")
-
-            st.subheader("رسم بياني للأرباح")
-            fig, ax = plt.subplots()
-            ax.bar(portfolio["stock"], portfolio["gain_loss"])
-            ax.set_ylabel("الربح / الخسارة بالدولار")
-            st.pyplot(fig)
-
-            st.subheader("تحليل ذكي للأسهم")
-            for symbol in portfolio["stock"]:
-                analysis = analyze_stock(symbol)
-                st.write(f"{symbol}: {analysis}")
-
-            for index, row in portfolio.iterrows():
-                if st.button(f"حذف {row['stock']}", key=row['stock']):
-                    portfolio = portfolio.drop(index)
-                    save_portfolio(portfolio)
-                    st.warning(f"تم حذف {row['stock']}")
-                    st.experimental_rerun()
-        else:
-            st.warning("لا توجد بيانات في المحفظة حالياً.")
-
-    elif menu == "إضافة سهم للمحفظة":
-        st.subheader("إضافة سهم جديد")
-        stock = st.text_input("رمز السهم")
-        buy_price = st.number_input("سعر الشراء", min_value=0.0)
-        quantity = st.number_input("الكمية", min_value=1)
-        if st.button("إضافة للسجل"):
-            if stock and buy_price > 0 and quantity > 0:
-                portfolio = load_portfolio()
-                new_row = pd.DataFrame([{
-                    "stock": stock,
-                    "buy_price": buy_price,
-                    "quantity": quantity
-                }])
-                portfolio = pd.concat([portfolio, new_row], ignore_index=True)
-                save_portfolio(portfolio)
-                st.success("تمت إضافة السهم للمحفظة")
-
-    elif menu == "قائمة المراقبة":
-        st.subheader("قائمة المراقبة")
-        watchlist = load_watchlist()
-        new_stock = st.text_input("أدخل رمز السهم (مثال: AAPL)")
-        if st.button("إضافة"):
-            if new_stock and new_stock not in watchlist:
-                watchlist.append(new_stock)
-                save_watchlist([[s] for s in watchlist])
-                st.success("تمت إضافة السهم إلى القائمة")
-
-        for stock in watchlist:
-            col1, col2 = st.columns([4, 1])
-            col1.write(stock)
-            if col2.button("X", key=stock):
-                watchlist.remove(stock)
-                save_watchlist([[s] for s in watchlist])
-                st.warning(f"تم حذف {stock}")
-
-    elif menu == "تنبيه سعر":
-        st.subheader("تنبيه سعر السهم")
-        stock = st.text_input("رمز السهم")
-        target_price = st.number_input("أدخل السعر المستهدف", min_value=0.0)
-        if st.button("تنبيه"):
-            if stock:
-                try:
-                    price = yf.Ticker(stock).history(period="1d")["Close"].iloc[-1]
-                    st.write(f"السعر الحالي لـ {stock}: {price:.2f}")
-                    if price >= target_price:
-                        send_telegram_message(f"سعر السهم {stock} وصل إلى {price:.2f}")
-                        st.success("تم إرسال التنبيه إلى التليجرام")
-                    else:
-                        st.info("السعر الحالي لم يصل بعد للسعر المستهدف")
-                except:
-                    st.error("حدث خطأ في جلب السعر")
+    st.sidebar.title("القائمة")
+    page = st.sidebar.selectbox("اختر", ["Dashboard", "تسجيل صفقة", "تحليل AI", "تقييم AI"])
+    if page == "Dashboard":
+        dashboard()
+    elif page == "تسجيل صفقة":
+        add_trade_ui()
+    elif page == "تحليل AI":
+        advanced_ai_analysis()
+    elif page == "تقييم AI":
+        ai_accuracy_report()
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
