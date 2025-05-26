@@ -45,6 +45,7 @@ def main_app():
     - اختر السهم من القائمة (مثل آبل أو تسلا).
     - اختر المدة الزمنية.
     - سيتم عرض السعر الحالي والتغير.
+    - ستظهر تنبيهات إذا وصل السعر إلى نقطة دخول.
 
     > **تنبيه:** لا تعتبر هذه التوصيات نصيحة مالية. استشر بناء على تحليلك وظروفك الشخصية.
     """)
@@ -66,6 +67,15 @@ def main_app():
     interval = "1m" if period_label == "1 يوم" else "1h"
     period = period_map[period_label]
 
+    # سعر الدخول المتوقع
+    entry_prices = {
+        "AAPL": 196.00,
+        "NVDA": 108.00,
+        "TSLA": 165.00,
+        "GOOG": 165.00,
+        "AMZN": 180.00
+    }
+
     try:
         stock = yf.Ticker(symbol)
         data = stock.history(period=period, interval=interval)
@@ -74,16 +84,23 @@ def main_app():
             st.warning("لا توجد بيانات متاحة للفترة المحددة.")
             return
 
-        current_price_usd = data["Close"].iloc[-1]
-        previous_price_usd = data["Close"].iloc[-2] if len(data["Close"]) > 1 else current_price_usd
-        change = current_price_usd - previous_price_usd
-        percent_change = (change / previous_price_usd) * 100 if previous_price_usd != 0 else 0
+        current_price = data["Close"].iloc[-1]
+        previous_price = data["Close"].iloc[-2] if len(data["Close"]) > 1 else current_price
+        change = current_price - previous_price
+        percent_change = (change / previous_price) * 100 if previous_price != 0 else 0
 
-        current_price_sar = current_price_usd * USD_TO_SAR
+        # التنبيه على فرصة الدخول
+        entry_price = entry_prices.get(symbol, 0)
+        if current_price <= entry_price:
+            st.success(f"فرصة دخول! السعر الحالي ({current_price:.2f} USD) أقل من السعر المقترح ({entry_price:.2f})")
+        else:
+            st.info(f"السعر الحالي أعلى من السعر المقترح ({entry_price:.2f})")
 
+        # عرض السعر بالريال والدولار
+        sar_price = current_price * USD_TO_SAR
         st.metric(
             label=f"السعر الحالي ({symbol})",
-            value=f"{current_price_sar:.2f} ريال ({current_price_usd:.2f} USD)",
+            value=f"{sar_price:.2f} ريال ({current_price:.2f} USD)",
             delta=f"{percent_change:.2f}%",
             delta_color="normal"
         )
