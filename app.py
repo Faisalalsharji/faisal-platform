@@ -4,8 +4,8 @@ from datetime import datetime
 
 st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="centered")
 
-USERNAME = "admin"
-PASSWORD = "123"
+USERNAME = "faisal"
+PASSWORD = "faisal1409@"
 USD_TO_SAR = 3.75
 
 def login():
