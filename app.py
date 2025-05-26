@@ -66,20 +66,25 @@ def main_app():
 
     # تحميل بيانات السهم
     data = yf.download(selected_stock, period=yf_period, interval="5m")
-    
-    if "Close" not in data.columns or data["Close"].empty:
+
+    # التحقق من وجود بيانات وعمود Adj Close
+    if data.empty or "Adj Close" not in data.columns:
         st.warning("لا توجد بيانات سعر حالياً، قد يكون السوق مغلق أو رمز السهم غير صحيح.")
         return
 
     # السعر الحالي
-    latest_price = data["Close"][-1]
+    latest_price = data["Adj Close"][-1]
     sar_price = round(latest_price * USD_TO_SAR, 2)
 
     # نسبة التغير
-    change_percent = ((data["Close"][-1] - data["Close"][-2]) / data["Close"][-2]) * 100
+    if len(data["Adj Close"]) >= 2:
+        change_percent = ((data["Adj Close"].iloc[-1] - data["Adj Close"].iloc[-2]) / data["Adj Close"].iloc[-2]) * 100
+    else:
+        change_percent = 0.0
+
     color = "green" if change_percent >= 0 else "red"
 
-    # سعر دخول مقترح (قيمة ثابتة مؤقتاً)
+    # سعر دخول مقترح
     suggested_entry = 196.00
     if latest_price < suggested_entry:
         st.success(f"أقل من السعر المقترح ({suggested_entry} USD) فرصة دخول! السعر الحالي: {round(latest_price, 2)}")
@@ -89,10 +94,10 @@ def main_app():
     st.markdown(f"<h2 style='color:white;'>{sar_price} ريال ({round(latest_price, 2)} USD)</h2>", unsafe_allow_html=True)
     st.markdown(f"<p style='color:{color};'>تغير: {round(change_percent, 2)}%</p>", unsafe_allow_html=True)
 
-    # رسم بياني للسعر
-    st.line_chart(data["Close"])
+    # رسم بياني
+    st.line_chart(data["Adj Close"])
 
-    # زر إضافة للسهم إلى قائمة المراقبة (مستقبلاً سيتم تفعيله بقاعدة بيانات)
+    # زر إضافة للمراقبة (لاحقًا نفعّله بقاعدة بيانات)
     if st.button("أضف إلى قائمة المراقبة"):
         st.info("تمت الإضافة إلى قائمة المراقبة (قريبًا سيتم الحفظ الفعلي)")
 
