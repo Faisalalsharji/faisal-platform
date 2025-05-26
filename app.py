@@ -1,29 +1,20 @@
-stock_list = {
-        "آبل (AAPL)": "AAPL",
-        "نيفيديا (NVDA)": "NVDA",
-        "تسلا (TSLA)": "TSLA",
-        "قوقل (GOOG)": "GOOG",
-        "أمازون (AMZN)": "AMZN"
-    }
-
-    selected_label = st.selectbox("اختر السهم", options=list(stock_list.keys()))
-    import streamlit as st
+import streamlit as st
 import yfinance as yf
 from datetime import datetime
 
-stock_list = {
-    "آبل (AAPL)": "AAPL",
-    "نيفيديا (NVDA)": "NVDA",
-    "تسلا (TSLA)": "TSLA",
-    "قوقل (GOOG)": "GOOG",
-    "أمازون (AMZN)": "AMZN"
-}
-
-st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="centered")
+st.set_page_config(page_title="الأسهم الذكية - منصة فيصل", layout="centered")
 
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
 USD_TO_SAR = 3.75
+
+stock_list = {
+    "آبل (AAPL)": "AAPL",
+    "نفيديا (NVDA)": "NVDA",
+    "تسلا (TSLA)": "TSLA",
+    "قوقل (GOOG)": "GOOG",
+    "أمازون (AMZN)": "AMZN"
+}
 
 def login():
     st.title("تسجيل الدخول - منصة فيصل")
@@ -40,13 +31,6 @@ def main_app():
     st.title("منصة فيصل - الأسهم الذكية")
     st.markdown("---")
 
-    stock_list = {
-        "آبل (AAPL)": "AAPL",
-        "نفيديا (NVDA)": "NVDA",
-        "تسلا (TSLA)": "TSLA",
-        "جوجل (GOOG)": "GOOG",
-        "أمازون (AMZN)": "AMZN"
-    }
     selected_label = st.selectbox("اختر السهم", options=list(stock_list.keys()))
     symbol = stock_list[selected_label]
 
@@ -58,6 +42,7 @@ def main_app():
         "6 أشهر": "6mo",
         "سنة": "1y"
     }
+
     interval = "1m" if period_label == "1 يوم" else "1h"
     period = period_map[period_label]
 
@@ -76,13 +61,13 @@ def main_app():
 
         st.metric(
             label=f"السعر الحالي لـ {symbol}",
-            value=f"${current_price:.2f} / {current_price * USD_TO_SAR:.2f} ريال",
+            value=f"{current_price:.2f} ريال", 
             delta=f"{percent_change:.2f}%",
             delta_color="normal"
         )
 
         st.line_chart(data["Close"], height=300)
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         st.caption(f"آخر تحديث: {now}")
 
     except Exception as e:
