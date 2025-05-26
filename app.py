@@ -10,7 +10,6 @@ INVITE_CODE = "INVITE2025"
 USD_TO_SAR = 3.75
 PORTFOLIO_FILE = "portfolio.csv"
 TRADES_FILE = "trades.csv"
-lang = "ar"
 
 def save_portfolio(portfolio):
     df = pd.DataFrame(portfolio)
