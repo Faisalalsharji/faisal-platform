@@ -74,14 +74,16 @@ def main_app():
             st.warning("لا توجد بيانات متاحة للفترة المحددة.")
             return
 
-        current_price = data["Close"].iloc[-1]
-        previous_price = data["Close"].iloc[-2] if len(data["Close"]) > 1 else current_price
-        change = current_price - previous_price
-        percent_change = (change / previous_price) * 100 if previous_price != 0 else 0
+        current_price_usd = data["Close"].iloc[-1]
+        previous_price_usd = data["Close"].iloc[-2] if len(data["Close"]) > 1 else current_price_usd
+        change = current_price_usd - previous_price_usd
+        percent_change = (change / previous_price_usd) * 100 if previous_price_usd != 0 else 0
+
+        current_price_sar = current_price_usd * USD_TO_SAR
 
         st.metric(
             label=f"السعر الحالي ({symbol})",
-            value=f"{current_price:.2f} ريال",
+            value=f"{current_price_sar:.2f} ريال ({current_price_usd:.2f} USD)",
             delta=f"{percent_change:.2f}%",
             delta_color="normal"
         )
