@@ -41,6 +41,22 @@ def load_portfolio():
     except:
         return pd.DataFrame(columns=["stock", "buy_price", "quantity"])
 
+def analyze_stock(symbol):
+    try:
+        data = yf.Ticker(symbol).history(period="7d")["Close"]
+        if len(data) >= 2:
+            change = data[-1] - data[0]
+            if change > 0:
+                return "سعر السهم في صعود - فرصة شراء"
+            elif change < 0:
+                return "السهم في نزول - لا تشتري الآن"
+            else:
+                return "السهم مستقر"
+        else:
+            return "لا يوجد بيانات كافية"
+    except:
+        return "فشل في التحليل"
+
 def login():
     st.title("تسجيل الدخول - منصة فيصل")
     username = st.text_input("اسم المستخدم")
@@ -87,12 +103,16 @@ def main_app():
             st.info(f"الربح/الخسارة الكلي: {total_profit:,.2f} دولار / {total_profit * USD_TO_SAR:,.2f} ريال")
             st.success(f"القيمة الحالية للمحفظة: {total_value:,.2f} ريال")
 
+            st.subheader("رسم بياني للأرباح")
+            fig, ax = plt.subplots()
+            ax.bar(portfolio["stock"], portfolio["gain_loss"])
+            ax.set_ylabel("الربح / الخسارة بالدولار")
+            st.pyplot(fig)
+
+            st.subheader("تحليل ذكي للأسهم")
             for symbol in portfolio["stock"]:
-                st.write(f"الرسم البياني للسهم: {symbol}")
-                data = yf.Ticker(symbol).history(period="1mo")
-                plt.figure()
-                data["Close"].plot(title=symbol)
-                st.pyplot(plt)
+                analysis = analyze_stock(symbol)
+                st.write(f"{symbol}: {analysis}")
 
             for index, row in portfolio.iterrows():
                 if st.button(f"حذف {row['stock']}", key=row['stock']):
