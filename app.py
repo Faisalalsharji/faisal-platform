@@ -66,7 +66,7 @@ def main_app():
     if st.button("تحديث الآن"):
         st.session_state.refresh = True
 
-    # تحميل البيانات (بناءً على الزر)
+    # تحميل البيانات
     if "refresh" not in st.session_state or st.session_state.refresh:
         data = yf.download(selected_stock, period=yf_period, interval="5m")
         st.session_state.refresh = False
@@ -81,7 +81,7 @@ def main_app():
     latest_price = data["Adj Close"].iloc[-1]
     sar_price = round(latest_price * USD_TO_SAR, 2)
 
-    # نسبة التغير
+    # التغير
     if len(data["Adj Close"]) >= 2:
         change_percent = ((data["Adj Close"].iloc[-1] - data["Adj Close"].iloc[-2]) / data["Adj Close"].iloc[-2]) * 100
     else:
@@ -89,7 +89,7 @@ def main_app():
 
     color = "green" if change_percent >= 0 else "red"
 
-    # تنبيه دخول
+    # فرصة دخول
     suggested_entry = 196.00
     if latest_price < suggested_entry:
         st.success(f"أقل من السعر المقترح ({suggested_entry} USD) فرصة دخول! السعر الحالي: {round(latest_price, 2)}")
@@ -117,9 +117,22 @@ def main_app():
     # رسم بياني
     st.line_chart(data["Adj Close"])
 
-    # زر المراقبة
+    # حفظ في قائمة المراقبة المؤقتة
+    if "watchlist" not in st.session_state:
+        st.session_state.watchlist = []
+
     if st.button("أضف إلى قائمة المراقبة"):
-        st.info("تمت الإضافة إلى قائمة المراقبة (قريبًا سيتم الحفظ الفعلي)")
+        if selected_stock_label not in st.session_state.watchlist:
+            st.session_state.watchlist.append(selected_stock_label)
+            st.success("تمت الإضافة إلى قائمة المراقبة.")
+        else:
+            st.info("السهم موجود بالفعل في قائمة المراقبة.")
+
+    # عرض قائمة المراقبة
+    if st.session_state.watchlist:
+        st.markdown("### قائمة المراقبة المؤقتة:")
+        for stock in st.session_state.watchlist:
+            st.markdown(f"- {stock}")
 
     # الوقت
     st.caption(f"آخر تحديث: {datetime.now().strftime('%H:%M:%S %d-%m-%Y')}")
