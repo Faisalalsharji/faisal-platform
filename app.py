@@ -2,7 +2,7 @@ import streamlit as st
 import yfinance as yf
 from datetime import datetime
 
-st.set_page_config(page_title="الأسهم الذكية - منصة فيصل", layout="centered")
+st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="centered")
 
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
@@ -29,6 +29,18 @@ def login():
 
 def main_app():
     st.title("منصة فيصل - الأسهم الذكية")
+
+    st.markdown("""
+    مرحباً بك في منصة فيصل للأسهم الذكية.
+
+    - اختر السهم من القائمة (مثل آبل، تسلا، وغيرها).
+    - ثم اختر مدة التحليل (يوم، أسبوع، شهر...).
+    - سيتم عرض السعر الحالي وتحليل التغير مع رسم بياني.
+    - الأسعار يتم تحديثها تلقائياً من السوق.
+
+    **تنبيه:** لا تعتبر هذه التوصيات نصيحة مالية. استثمر بناءً على قناعتك وهدفك المالي.
+    """)
+
     st.markdown("---")
 
     selected_label = st.selectbox("اختر السهم", options=list(stock_list.keys()))
@@ -61,7 +73,7 @@ def main_app():
 
         st.metric(
             label=f"السعر الحالي لـ {symbol}",
-            value=f"{current_price:.2f} ريال", 
+            value=f"{current_price:.2f} ريال",
             delta=f"{percent_change:.2f}%",
             delta_color="normal"
         )
@@ -71,7 +83,7 @@ def main_app():
         st.caption(f"آخر تحديث: {now}")
 
     except Exception as e:
-        st.error("حدث خطأ أثناء جلب البيانات. تأكد من رمز السهم أو الاتصال.")
+        st.error("حدث خطأ أثناء جلب البيانات. تأكد من رمز السهم أو الاتصال بالإنترنت.")
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
