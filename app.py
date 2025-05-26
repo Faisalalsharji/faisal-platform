@@ -62,10 +62,17 @@ def main_app():
     }
     yf_period = period_map[period]
 
-    # تحميل البيانات
-    data = yf.download(selected_stock, period=yf_period, interval="5m")
+    # زر التحديث اليدوي
+    if st.button("تحديث الآن"):
+        st.session_state.refresh = True
 
-    # التحقق من وجود البيانات
+    # تحميل البيانات (بناءً على الزر)
+    if "refresh" not in st.session_state or st.session_state.refresh:
+        data = yf.download(selected_stock, period=yf_period, interval="5m")
+        st.session_state.refresh = False
+    else:
+        data = yf.download(selected_stock, period=yf_period, interval="5m")
+
     if data.empty or "Adj Close" not in data.columns:
         st.warning("لا توجد بيانات سعر حالياً، قد يكون السوق مغلق أو رمز السهم غير صحيح.")
         return
@@ -74,7 +81,7 @@ def main_app():
     latest_price = data["Adj Close"].iloc[-1]
     sar_price = round(latest_price * USD_TO_SAR, 2)
 
-    # التغير
+    # نسبة التغير
     if len(data["Adj Close"]) >= 2:
         change_percent = ((data["Adj Close"].iloc[-1] - data["Adj Close"].iloc[-2]) / data["Adj Close"].iloc[-2]) * 100
     else:
@@ -82,7 +89,7 @@ def main_app():
 
     color = "green" if change_percent >= 0 else "red"
 
-    # تنبيه فرصة دخول
+    # تنبيه دخول
     suggested_entry = 196.00
     if latest_price < suggested_entry:
         st.success(f"أقل من السعر المقترح ({suggested_entry} USD) فرصة دخول! السعر الحالي: {round(latest_price, 2)}")
