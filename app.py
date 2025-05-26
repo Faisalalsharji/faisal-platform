@@ -10,13 +10,7 @@ INVITE_CODE = "INVITE2025"
 USD_TO_SAR = 3.75
 PORTFOLIO_FILE = "portfolio.csv"
 TRADES_FILE = "trades.csv"
-LANG_AR = "ar"
-LANG_EN = "en"
-
-def detect_lang():
-    return LANG_AR if "ar" in st.get_option("browser.gatherUsageStats") else LANG_EN
-
-lang = detect_lang()
+lang = "ar"
 
 def save_portfolio(portfolio):
     df = pd.DataFrame(portfolio)
