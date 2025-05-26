@@ -7,9 +7,17 @@ stock_list = {
     }
 
     selected_label = st.selectbox("اختر السهم", options=list(stock_list.keys()))
-    symbol = stock_list[selected_label]import streamlit as st
+    import streamlit as st
 import yfinance as yf
 from datetime import datetime
+
+stock_list = {
+    "آبل (AAPL)": "AAPL",
+    "نيفيديا (NVDA)": "NVDA",
+    "تسلا (TSLA)": "TSLA",
+    "قوقل (GOOG)": "GOOG",
+    "أمازون (AMZN)": "AMZN"
+}
 
 st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="centered")
 
