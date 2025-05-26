@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import yfinance as yf
+import matplotlib.pyplot as plt
 import requests
 
 USERNAME = "faisal"
@@ -54,25 +55,70 @@ def login():
 def main_app():
     st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="centered")
     st.title("منصة فيصل - الأسهم الذكية")
-    menu = st.sidebar.selectbox("القائمة", ["قائمة المراقبة", "ملخص المحفظة", "تنبيه سعر"])
+    menu = st.sidebar.selectbox("القائمة", ["قائمة المراقبة", "ملخص المحفظة", "إضافة سهم للمحفظة", "تنبيه سعر"])
 
     if menu == "ملخص المحفظة":
         st.subheader("ملخص المحفظة")
         portfolio = load_portfolio()
         if not portfolio.empty:
-            prices = []
-            for symbol in portfolio["stock"]:
-                data = yf.Ticker(symbol)
-                prices.append(data.history(period="1d")["Close"].iloc[-1])
-            portfolio["current_price"] = prices
+            if st.button("تحديث الأسعار"):
+                prices = []
+                for symbol in portfolio["stock"]:
+                    data = yf.Ticker(symbol)
+                    prices.append(data.history(period="1d")["Close"].iloc[-1])
+                portfolio["current_price"] = prices
+                save_portfolio(portfolio)
+            else:
+                if "current_price" not in portfolio.columns:
+                    prices = []
+                    for symbol in portfolio["stock"]:
+                        data = yf.Ticker(symbol)
+                        prices.append(data.history(period="1d")["Close"].iloc[-1])
+                    portfolio["current_price"] = prices
+                    save_portfolio(portfolio)
+
             portfolio["gain_loss"] = (portfolio["current_price"] - portfolio["buy_price"]) * portfolio["quantity"]
             portfolio["total_value_usd"] = portfolio["current_price"] * portfolio["quantity"]
             portfolio["total_value_sar"] = portfolio["total_value_usd"] * USD_TO_SAR
             st.dataframe(portfolio)
+
             total_profit = portfolio["gain_loss"].sum()
+            total_value = portfolio["total_value_sar"].sum()
             st.info(f"الربح/الخسارة الكلي: {total_profit:,.2f} دولار / {total_profit * USD_TO_SAR:,.2f} ريال")
+            st.success(f"القيمة الحالية للمحفظة: {total_value:,.2f} ريال")
+
+            for symbol in portfolio["stock"]:
+                st.write(f"الرسم البياني للسهم: {symbol}")
+                data = yf.Ticker(symbol).history(period="1mo")
+                plt.figure()
+                data["Close"].plot(title=symbol)
+                st.pyplot(plt)
+
+            for index, row in portfolio.iterrows():
+                if st.button(f"حذف {row['stock']}", key=row['stock']):
+                    portfolio = portfolio.drop(index)
+                    save_portfolio(portfolio)
+                    st.warning(f"تم حذف {row['stock']}")
+                    st.experimental_rerun()
         else:
             st.warning("لا توجد بيانات في المحفظة حالياً.")
+
+    elif menu == "إضافة سهم للمحفظة":
+        st.subheader("إضافة سهم جديد")
+        stock = st.text_input("رمز السهم")
+        buy_price = st.number_input("سعر الشراء", min_value=0.0)
+        quantity = st.number_input("الكمية", min_value=1)
+        if st.button("إضافة للسجل"):
+            if stock and buy_price > 0 and quantity > 0:
+                portfolio = load_portfolio()
+                new_row = pd.DataFrame([{
+                    "stock": stock,
+                    "buy_price": buy_price,
+                    "quantity": quantity
+                }])
+                portfolio = pd.concat([portfolio, new_row], ignore_index=True)
+                save_portfolio(portfolio)
+                st.success("تمت إضافة السهم للمحفظة")
 
     elif menu == "قائمة المراقبة":
         st.subheader("قائمة المراقبة")
