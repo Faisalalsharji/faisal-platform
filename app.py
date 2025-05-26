@@ -19,7 +19,9 @@ stock_list = {
     "نفيديا (NVDA)": "NVDA",
     "تسلا (TSLA)": "TSLA",
     "قوقل (GOOG)": "GOOG",
-    "أمازون (AMZN)": "AMZN"
+    "أمازون (AMZN)": "AMZN",
+    "مايكروسوفت (MSFT)": "MSFT",
+    "ميتا (META)": "META"
 }
 
 # واجهة تسجيل الدخول
@@ -27,7 +29,6 @@ def login():
     st.title("تسجيل الدخول - منصة فيصل")
     username = st.text_input("اسم المستخدم")
     password = st.text_input("كلمة المرور", type="password")
-
     if st.button("دخول"):
         if username == USERNAME and password == PASSWORD:
             st.session_state.logged_in = True
@@ -35,85 +36,72 @@ def login():
         else:
             st.error("اسم المستخدم أو كلمة المرور غير صحيحة")
 
-# واجهة المنصة
+# الوظائف الرئيسية للمنصة
 def main_app():
     st.title("منصة فيصل - الأسهم الذكية")
-
     st.markdown("""
-    **مرحباً بك في منصة فيصل الذكية للأسهم.**
-
-    - اختر السهم من القائمة (مثل آبل أو تسلا).
-    - اختر المدة الزمنية.
-    - سيتم عرض السعر الحالي والتغير.
-    - ستظهر تنبيهات إذا وصل السعر إلى نقطة دخول.
-
-    > **تنبيه:** لا تعتبر هذه التوصيات نصيحة مالية. استشر بناء على تحليلك وظروفك الشخصية.
+    مرحباً بك في منصة فيصل الذكية للأسهم  
+    - اختر السهم من القائمة (مثل آبل أو تسلا)  
+    - اختر المدة الزمنية  
+    - سيتم عرض السعر الحالي والتغير  
+    - سنقترح تنبيهات إذا وصل السعر لنقطة دخول  
+    *تنبيه: لا تعتبر هذه التوصيات نصيحة مالية.
     """)
-    st.markdown("---")
 
     # اختيار السهم
-    selected_label = st.selectbox("اختر السهم", options=list(stock_list.keys()))
-    symbol = stock_list[selected_label]
+    selected_stock_label = st.selectbox("اختر السهم", list(stock_list.keys()))
+    selected_stock = stock_list[selected_stock_label]
 
     # اختيار المدة
-    period_label = st.selectbox("اختر المدة", ["1 يوم", "5 أيام", "1 شهر", "6 أشهر", "1 سنة"])
+    period = st.selectbox("اختر المدة", ["1 يوم", "5 أيام", "1 شهر", "3 أشهر", "6 أشهر", "1 سنة"])
+
+    # تحويل المدة لـ yfinance
     period_map = {
         "1 يوم": "1d",
         "5 أيام": "5d",
         "1 شهر": "1mo",
+        "3 أشهر": "3mo",
         "6 أشهر": "6mo",
         "1 سنة": "1y"
     }
-    interval = "1m" if period_label == "1 يوم" else "1h"
-    period = period_map[period_label]
+    yf_period = period_map[period]
 
-    # سعر الدخول المتوقع
-    entry_prices = {
-        "AAPL": 196.00,
-        "NVDA": 108.00,
-        "TSLA": 165.00,
-        "GOOG": 165.00,
-        "AMZN": 180.00
-    }
+    # تحميل بيانات السهم
+    data = yf.download(selected_stock, period=yf_period, interval="5m")
+    if data.empty:
+        st.warning("لا توجد بيانات متاحة حالياً.")
+        return
 
-    try:
-        stock = yf.Ticker(symbol)
-        data = stock.history(period=period, interval=interval)
+    # حساب السعر الحالي
+    latest_price = data["Close"][-1]
+    sar_price = round(latest_price * USD_TO_SAR, 2)
 
-        if data.empty:
-            st.warning("لا توجد بيانات متاحة للفترة المحددة.")
-            return
+    # التغير
+    change_percent = ((data["Close"][-1] - data["Close"][-2]) / data["Close"][-2]) * 100
+    color = "green" if change_percent >= 0 else "red"
 
-        current_price = data["Close"].iloc[-1]
-        previous_price = data["Close"].iloc[-2] if len(data["Close"]) > 1 else current_price
-        change = current_price - previous_price
-        percent_change = (change / previous_price) * 100 if previous_price != 0 else 0
+    # سعر دخول مقترح
+    suggested_entry = 196.00  # كمثال لآبل (تخصيص لاحقًا حسب السهم)
 
-        # التنبيه على فرصة الدخول
-        entry_price = entry_prices.get(symbol, 0)
-        if current_price <= entry_price:
-            st.success(f"فرصة دخول! السعر الحالي ({current_price:.2f} USD) أقل من السعر المقترح ({entry_price:.2f})")
-        else:
-            st.info(f"السعر الحالي أعلى من السعر المقترح ({entry_price:.2f})")
+    # عرض تنبيه
+    if latest_price < suggested_entry:
+        st.success(f"أقل من السعر المقترح ({suggested_entry} USD) فرصة دخول! السعر الحالي: {round(latest_price, 2)}")
 
-        # عرض السعر بالريال والدولار
-        sar_price = current_price * USD_TO_SAR
-        st.metric(
-            label=f"السعر الحالي ({symbol})",
-            value=f"{sar_price:.2f} ريال ({current_price:.2f} USD)",
-            delta=f"{percent_change:.2f}%",
-            delta_color="normal"
-        )
+    # عرض السعر
+    st.markdown(f"### السعر الحالي ({selected_stock})")
+    st.markdown(f"<h2 style='color:white;'>{sar_price} ريال ({round(latest_price, 2)} USD)</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:{color};'>تغير: {round(change_percent, 2)}%</p>", unsafe_allow_html=True)
 
-        st.line_chart(data["Close"], height=300)
+    # رسم بياني
+    st.line_chart(data["Close"])
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        st.caption(f"آخر تحديث: {now}")
+    # إضافة إلى قائمة المراقبة (لاحقًا سنفعلها)
+    if st.button("أضف إلى قائمة المراقبة"):
+        st.info("تمت الإضافة إلى قائمة المراقبة (قريبًا سيتم حفظها فعلياً)")
 
-    except Exception as e:
-        st.error("حدث خطأ أثناء جلب البيانات. تأكد من رمز السهم أو الاتصال بالإنترنت.")
+    st.caption(f"آخر تحديث: {datetime.now().strftime('%H:%M:%S %d-%m-%Y')}")
 
-# تشغيل التطبيق
+# إدارة جلسة الدخول
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
