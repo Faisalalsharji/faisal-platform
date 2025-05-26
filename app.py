@@ -2,7 +2,10 @@ import streamlit as st
 import yfinance as yf
 from datetime import datetime
 
-st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="centered")
+st.set_page_config(
+    page_title="منصة فيصل - الأسهم الذكية",
+    layout="centered"
+)
 
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
@@ -15,32 +18,30 @@ stock_list = {
     "قوقل (GOOG)": "GOOG",
     "أمازون (AMZN)": "AMZN"
 }
-
 def login():
     st.title("تسجيل الدخول - منصة فيصل")
     username = st.text_input("اسم المستخدم")
     password = st.text_input("كلمة المرور", type="password")
+
     if st.button("دخول"):
         if username == USERNAME and password == PASSWORD:
             st.session_state.logged_in = True
             st.success("تم تسجيل الدخول بنجاح")
         else:
             st.error("اسم المستخدم أو كلمة المرور غير صحيحة")
-
-def main_app():
+            def main_app():
     st.title("منصة فيصل - الأسهم الذكية")
 
     st.markdown("""
-    مرحباً بك في منصة فيصل للأسهم الذكية.
+    **مرحباً بك في منصة فيصل للأسهم الذكية.**
 
-    - اختر السهم من القائمة (مثل آبل، تسلا، وغيرها).
-    - ثم اختر مدة التحليل (يوم، أسبوع، شهر...).
-    - سيتم عرض السعر الحالي وتحليل التغير مع رسم بياني.
-    - الأسعار يتم تحديثها تلقائياً من السوق.
+    - اختر السهم من القائمة (مثل آبل أو تسلا).
+    - اختر المدة الزمنية (يوم، 5 أيام، شهر...).
+    - سيتم عرض السعر الحالي، ونسبة التغير، والرسم البياني.
+    - البيانات يتم تحديثها تلقائياً عند كل زيارة.
 
-    **تنبيه:** لا تعتبر هذه التوصيات نصيحة مالية. استثمر بناءً على قناعتك وهدفك المالي.
+    > **تنبيه:** لا تعتبر هذه التوصيات نصيحة مالية. استثمر بناءً على تحليلك ومخاطرتك الشخصية.
     """)
-
     st.markdown("---")
 
     selected_label = st.selectbox("اختر السهم", options=list(stock_list.keys()))
@@ -57,7 +58,6 @@ def main_app():
 
     interval = "1m" if period_label == "1 يوم" else "1h"
     period = period_map[period_label]
-
     try:
         stock = yf.Ticker(symbol)
         data = stock.history(period=period, interval=interval)
@@ -77,15 +77,13 @@ def main_app():
             delta=f"{percent_change:.2f}%",
             delta_color="normal"
         )
-
         st.line_chart(data["Close"], height=300)
+
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         st.caption(f"آخر تحديث: {now}")
-
     except Exception as e:
-        st.error("حدث خطأ أثناء جلب البيانات. تأكد من رمز السهم أو الاتصال بالإنترنت.")
-
-if "logged_in" not in st.session_state:
+        st.error("حدث خطأ أثناء جلب البيانات، تأكد من رمز السهم أو الاتصال بالإنترنت.")
+        if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
