@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+# بيانات الدخول والثوابت
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
 USD_TO_SAR = 3.75
@@ -12,9 +13,10 @@ PORTFOLIO_FILE = "portfolio.csv"
 TRADES_FILE = "trades.csv"
 HALAL_STOCKS = ["AAPL", "GOOG", "MSFT", "NVDA", "TSLA", "AMZN", "META", "ADBE", "INTC", "CRM"]
 
+# إعداد الصفحة
 st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="wide")
 
-# تنسيق CSS للتصميم التفاعلي
+# تنسيق CSS للبطاقات
 st.markdown("""
     <style>
     .stock-card {
@@ -32,13 +34,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# شعار فيصل الرسمي (رابط يعمل)
+# شعار فيصل
 st.markdown("""
     <div style='text-align:center;padding:10px;'>
-        <img src='https://i.imgur.com/Mh1l8bJ.png' width='220'/>
+        <img src='https://i.ibb.co/3T3Pyrg/faisal-logo-full.png' width='220'/>
     </div>
 """, unsafe_allow_html=True)
 
+# تسجيل الدخول
 def login():
     st.title("تسجيل الدخول - منصة فيصل")
     username = st.text_input("اسم المستخدم")
@@ -51,6 +54,7 @@ def login():
         else:
             st.error("اسم المستخدم أو كلمة المرور غير صحيحة")
 
+# تحميل وحفظ الملفات
 def save_watchlist(watchlist):
     df = pd.DataFrame(watchlist, columns=["stock"])
     df.to_csv(WATCHLIST_FILE, index=False)
@@ -81,6 +85,7 @@ def load_trades():
     except:
         return pd.DataFrame(columns=["stock", "action", "price", "date"])
 
+# مؤشرات التحليل
 def rsi(prices, window=14):
     delta = prices.diff()
     gain = delta.clip(lower=0)
@@ -95,6 +100,7 @@ def macd(prices):
     exp2 = prices.ewm(span=26, adjust=False).mean()
     return exp1 - exp2
 
+# الصفحات
 def dashboard():
     st.header("الملخص المالي")
     trades = load_trades()
@@ -239,6 +245,7 @@ def stock_cards():
                     save_watchlist(watchlist)
                     st.experimental_rerun()
 
+# التحكم في عرض الصفحة
 def main_app():
     st.sidebar.title("القائمة")
     page = st.sidebar.selectbox("اختر الصفحة", ["الملخص المالي", "تسجيل صفقة", "تحليل AI", "تقييم AI", "الأسهم"])
