@@ -6,7 +6,6 @@ import datetime
 
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
-INVITE_CODE = "INVITE2025"
 USD_TO_SAR = 3.75
 WATCHLIST_FILE = "watchlist.csv"
 PORTFOLIO_FILE = "portfolio.csv"
@@ -26,14 +25,13 @@ def login():
     st.title("تسجيل الدخول - منصة فيصل")
     username = st.text_input("اسم المستخدم")
     password = st.text_input("كلمة المرور", type="password")
-    invite = st.text_input("رمز الدعوة")
     if st.button("دخول"):
-        if username == USERNAME and password == PASSWORD and invite == INVITE_CODE:
+        if username == USERNAME and password == PASSWORD:
             st.session_state.logged_in = True
             st.success("تم تسجيل الدخول")
             st.rerun()
         else:
-            st.error("بيانات الدخول غير صحيحة")
+            st.error("اسم المستخدم أو كلمة المرور غير صحيحة")
 
 def save_watchlist(watchlist):
     df = pd.DataFrame(watchlist, columns=["stock"])
