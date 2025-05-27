@@ -2,24 +2,31 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
-from datetime import datetime
 import matplotlib.pyplot as plt
+import csv
+from datetime import datetime
+from streamlit_autorefresh import st_autorefresh
 
 # إعداد الصفحة
 st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="wide")
+st_autorefresh(interval=10000, limit=None, key="live_refresh")
 
 # بيانات الدخول
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
 USD_TO_SAR = 3.75
 
-# الأسهم الحلال (تقدر توسعها لاحقًا)
+# الأسهم الحلال
 HALAL_LIST = ["AAPL", "GOOG", "MSFT", "NVDA", "TSLA", "AMZN", "META"]
-
-# قائمة المراقبة
 WATCHLIST = HALAL_LIST.copy()
 
-# تسجيل الدخول
+# دالة حفظ الصفقات
+def save_trade(symbol, action, price):
+    with open("portfolio.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow([symbol, action, price, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+
+# دالة تسجيل الدخول
 def login():
     st.title("تسجيل الدخول")
     u = st.text_input("اسم المستخدم")
@@ -39,10 +46,9 @@ if not st.session_state.logged_in:
 
 # فلتر الأسهم الحلال
 show_halal = st.sidebar.checkbox("عرض الأسهم الحلال فقط", value=True)
-if show_halal:
-    symbols = HALAL_LIST
-else:
-    symbols = WATCHLIST
+symbols = HALAL_LIST if show_halal else WATCHLIST
+
+# التحليل الذكي
 def analyze_stock(symbol):
     try:
         df = yf.Ticker(symbol).history(period="1mo")
@@ -66,17 +72,16 @@ def analyze_stock(symbol):
         rsi = last["RSI"]
         ma20 = last["MA20"]
 
-        # التوصية والاقتراح
         if rsi < 30 and macd > 0 and price > ma20:
             signal = "شراء قوي"
             entry = price
             exit_price = price * 1.05
-            suggestion = "دخول ممتاز الآن"
+            suggestion = "اشتر الآن قبل الانطلاقة"
         elif rsi > 70 and macd < 0:
             signal = "بيع"
             entry = price * 0.95
             exit_price = price
-            suggestion = "يفضل البيع الآن"
+            suggestion = "يُفضل البيع قبل التصحيح"
         else:
             signal = "انتظار"
             entry = price * 0.97
@@ -94,11 +99,11 @@ def analyze_stock(symbol):
             "suggestion": suggestion,
             "df": df
         }
+
     except:
         return None
 
-portfolio = []
-
+# عرض بطاقة السهم
 def display_stock(symbol):
     data = analyze_stock(symbol)
     if data is None:
@@ -106,9 +111,8 @@ def display_stock(symbol):
         return
 
     sar_price = data["price"] * USD_TO_SAR
-    change_percent = (data["price"] - data["ma20"]) / data["ma20"] * 100
-
     col1, col2 = st.columns([2, 1])
+
     with col1:
         st.markdown(f"""
             <div style='background:#1f1f1f;padding:20px;border-radius:16px;margin-bottom:15px;border:1px solid #444'>
@@ -121,16 +125,15 @@ def display_stock(symbol):
             </div>
         """, unsafe_allow_html=True)
 
-        # أزرار بيع وشراء
         col_buy, col_sell = st.columns(2)
         with col_buy:
             if st.button(f"شراء {symbol}"):
-                portfolio.append((symbol, data['price'], "شراء"))
+                save_trade(symbol, "شراء", data["price"])
                 st.success(f"تم شراء {symbol} بسعر {data['price']:.2f}$")
 
         with col_sell:
             if st.button(f"بيع {symbol}"):
-                portfolio.append((symbol, data['price'], "بيع"))
+                save_trade(symbol, "بيع", data["price"])
                 st.success(f"تم بيع {symbol} بسعر {data['price']:.2f}$")
 
     with col2:
@@ -140,19 +143,20 @@ def display_stock(symbol):
         ax.set_title(f"{symbol} - السعر خلال شهر")
         st.pyplot(fig)
 
+# عرض المحفظة
 def show_portfolio():
     st.subheader("المحفظة الحالية")
-    if not portfolio:
-        st.info("لا توجد صفقات حالياً.")
-    else:
-        for item in portfolio:
-            symbol, price, action = item
-            st.write(f"{action} - {symbol} بسعر {price:.2f} $")
+    try:
+        df = pd.read_csv("portfolio.csv", names=["Symbol", "Action", "Price", "Time"])
+        for _, row in df.iterrows():
+            st.write(f"{row['Action']} - {row['Symbol']} بسعر {row['Price']:.2f} $ في {row['Time']}")
+    except FileNotFoundError:
+        st.info("لا توجد صفقات حتى الآن.")
 
+# الصفحة الرئيسية
 def main():
     st.title("منصة فيصل - الأسهم الذكية")
     page = st.sidebar.selectbox("انتقل إلى:", ["الأسهم", "المحفظة"])
-
     sort_by = st.sidebar.selectbox("ترتيب حسب:", ["الأفضل حسب AI", "الأعلى تغيرًا", "الأرخص سعرًا"])
 
     if st.sidebar.button("تحديث الآن"):
@@ -166,7 +170,6 @@ def main():
                 score = 1 if data["signal"] == "شراء قوي" else 0
                 scored.append((symbol, score, data["price"], data["ma20"]))
 
-        # ترتيب حسب الخيار المختار
         if sort_by == "الأعلى تغيرًا":
             sorted_syms = sorted(scored, key=lambda x: (x[2] - x[3]) / x[3], reverse=True)
         elif sort_by == "الأرخص سعرًا":
