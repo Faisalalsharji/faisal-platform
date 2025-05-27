@@ -2,7 +2,7 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
-import datetime
+from datetime import datetime
 
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
@@ -10,14 +10,32 @@ USD_TO_SAR = 3.75
 WATCHLIST_FILE = "watchlist.csv"
 PORTFOLIO_FILE = "portfolio.csv"
 TRADES_FILE = "trades.csv"
-
 HALAL_STOCKS = ["AAPL", "GOOG", "MSFT", "NVDA", "TSLA", "AMZN", "META", "ADBE", "INTC", "CRM"]
 
 st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="wide")
 
+# تنسيق CSS للتصميم التفاعلي
+st.markdown("""
+    <style>
+    .stock-card {
+        background-color: #1e1e1e;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid #333;
+        margin-bottom: 16px;
+        transition: 0.3s ease;
+    }
+    .stock-card:hover {
+        border: 1px solid gold;
+        transform: scale(1.02);
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# شعار
 st.markdown("""
     <div style='text-align:center;padding:10px;'>
-        <img src='https://i.imgur.com/lwxQfxT.png' width='120'/>
+        <img src='https://i.imgur.com/SCk2D2Q.png' width='120'/>
     </div>
 """, unsafe_allow_html=True)
 
@@ -109,7 +127,7 @@ def add_trade_ui():
                 "stock": stock,
                 "action": action,
                 "price": price,
-                "date": datetime.datetime.now().strftime("%Y-%m-%d")
+                "date": datetime.now().strftime("%Y-%m-%d")
             }])
             trades = pd.concat([trades, new], ignore_index=True)
             save_trades(trades)
@@ -167,46 +185,59 @@ def stock_cards():
     st.header("الأسهم")
     watchlist = load_watchlist()
 
-    filter_type = st.radio("عرض الأسهم:", ["الكل", "الحلال فقط"], horizontal=True)
-    filtered_list = [s for s in watchlist if s in HALAL_STOCKS] if filter_type == "الحلال فقط" else watchlist
-
-    new_stock = st.text_input("أضف سهم إلى قائمة المراقبة")
-    if st.button("إضافة"):
-        if new_stock and new_stock not in watchlist:
+    st.sidebar.title("إدارة قائمة الأسهم")
+    new_stock = st.sidebar.text_input("أضف سهم")
+    if st.sidebar.button("إضافة"):
+        if new_stock and new_stock.upper() not in watchlist:
             watchlist.append(new_stock.upper())
-            save_watchlist([[s] for s in watchlist])
-            st.success("تمت الإضافة")
+            save_watchlist(watchlist)
+            st.experimental_rerun()
 
-    if not filtered_list:
-        st.warning("لا توجد أسهم في القائمة")
+    filter_type = st.sidebar.radio("فلتر:", ["الكل", "الحلال فقط"])
+    sort_order = st.sidebar.radio("ترتيب حسب التغير:", ["الأعلى", "الأقل"])
+
+    filtered_list = [s for s in watchlist if s in HALAL_STOCKS] if filter_type == "الحلال فقط" else watchlist
+    st.button("تحديث الأسعار")  # يدوي الآن فقط
+
+    stocks_data = []
+    for symbol in filtered_list:
+        try:
+            data = yf.Ticker(symbol)
+            price = data.history(period="1d")["Close"].iloc[-1]
+            prev = data.history(period="2d")["Close"].iloc[0]
+            change = price - prev
+            percent = (change / prev) * 100 if prev else 0
+            stocks_data.append({
+                "symbol": symbol,
+                "price": price,
+                "sar": price * USD_TO_SAR,
+                "change": change,
+                "percent": percent,
+                "color": "green" if change >= 0 else "red"
+            })
+        except:
+            continue
+
+    reverse = True if sort_order == "الأعلى" else False
+    stocks_data = sorted(stocks_data, key=lambda x: x["percent"], reverse=reverse)
+
+    if not stocks_data:
+        st.warning("لا توجد أسهم")
     else:
         cols = st.columns(3)
-        for i, symbol in enumerate(filtered_list):
-            try:
-                data = yf.Ticker(symbol)
-                info = data.info
-                price = data.history(period="1d")["Close"].iloc[-1]
-                prev_close = data.history(period="2d")["Close"].iloc[0]
-                change = price - prev_close
-                percent = (change / prev_close) * 100 if prev_close else 0
-                color = "green" if change >= 0 else "red"
-                with cols[i % 3]:
-                    st.markdown(f"""
-                    <div style='background-color:#111;padding:16px;border-radius:12px;margin-bottom:16px;border:1px solid #333;'>
-                        <h4 style='margin:0;color:white'>{info.get('shortName', symbol)} <span style='font-size:0.8em;color:#999;'>({symbol})</span></h4>
-                        <p style='margin:4px 0;font-size:1.1em;color:white'>${price:.2f} USD / {(price * USD_TO_SAR):.2f} SAR</p>
-                        <p style='margin:0;color:{color};font-weight:bold'>
-                            {change:+.2f} ({percent:+.2f}%)
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    if st.button("X", key=symbol):
-                        watchlist.remove(symbol)
-                        save_watchlist([[s] for s in watchlist])
-                        st.warning(f"تم حذف {symbol}")
-            except:
-                with cols[i % 3]:
-                    st.error(f"فشل في تحميل {symbol}")
+        for i, stock in enumerate(stocks_data):
+            with cols[i % 3]:
+                st.markdown(f"""
+                <div class='stock-card'>
+                    <h4 style='color:white'>{stock['symbol']}</h4>
+                    <p style='color:white'>${stock['price']:.2f} / {stock['sar']:.2f} SAR</p>
+                    <p style='color:{stock['color']};font-weight:bold'>{stock['change']:+.2f} ({stock['percent']:+.2f}%)</p>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("X", key=f"remove_{stock['symbol']}"):
+                    watchlist.remove(stock['symbol'])
+                    save_watchlist(watchlist)
+                    st.experimental_rerun()
 
 def main_app():
     st.sidebar.title("القائمة")
