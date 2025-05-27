@@ -32,10 +32,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# شعار فيصل الرسمي
+# شعار فيصل الرسمي (رابط يعمل)
 st.markdown("""
     <div style='text-align:center;padding:10px;'>
-        <img src='https://cdn.jsdelivr.net/gh/0xflair/logos/faisal-bg.png' width='220'/>
+        <img src='https://i.imgur.com/Mh1l8bJ.png' width='220'/>
     </div>
 """, unsafe_allow_html=True)
 
