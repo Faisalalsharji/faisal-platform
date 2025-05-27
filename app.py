@@ -93,7 +93,7 @@ def main():
     page = st.sidebar.radio("انتقل إلى:", ["الأسهم", "المحفظة"])
 
     if st.sidebar.button("تحديث يدوي"):
-        st.experimental_rerun()
+        st.rerun()
 
     if page == "الأسهم":
         st.subheader("الفرص الاستثمارية")
