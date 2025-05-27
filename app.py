@@ -1,155 +1,138 @@
-import streamlit as st import yfinance as yf import pandas as pd import numpy as np import matplotlib.pyplot as plt import csv from datetime import datetime from streamlit_autorefresh import st_autorefresh
+import streamlit as st
+import yfinance as yf
+import pandas as pd
+import requests
 
-إعداد الصفحة
+# مفاتيح API
+FINNHUB_API_KEY = "ضع_مفتاح_finnhub_هنا"
+EODHD_API_KEY = "ضع_مفتاح_eodhd_هنا"
 
+# إعدادات ثابتة
+USERNAME = "faisal"
+PASSWORD = "faisal2025"
+USD_TO_SAR = 3.75
+WATCHLIST_FILE = "watchlist.csv"
+HALAL_STOCKS = ["AAPL", "GOOG", "MSFT", "NVDA", "TSLA", "AMZN", "META", "ADBE", "INTC", "CRM"]
+
+# إعداد الصفحة
 st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="wide")
+st.markdown("""
+    <div style='text-align:center;padding:10px;'>
+        <img src='https://i.imgur.com/lwxQfxT.png' width='120'/>
+    </div>
+""", unsafe_allow_html=True)
 
-تحديث تلقائي كل 10 ثواني
+# تسجيل الدخول
+def login():
+    st.title("تسجيل الدخول - منصة فيصل")
+    username = st.text_input("اسم المستخدم")
+    password = st.text_input("كلمة المرور", type="password")
+    if st.button("دخول"):
+        if username == USERNAME and password == PASSWORD:
+            st.session_state.logged_in = True
+            st.success("تم تسجيل الدخول")
+            st.rerun()
+        else:
+            st.error("بيانات الدخول غير صحيحة")
 
-st_autorefresh(interval=10000, limit=None, key="live_refresh")
+# حفظ / تحميل قائمة المراقبة
+def save_watchlist(watchlist):
+    df = pd.DataFrame(watchlist, columns=["stock"])
+    df.to_csv(WATCHLIST_FILE, index=False)
 
-بيانات الدخول
+def load_watchlist():
+    try:
+        df = pd.read_csv(WATCHLIST_FILE)
+        return df["stock"].tolist()
+    except:
+        return []
 
-USERNAME = "faisal" PASSWORD = "faisal2025" USD_TO_SAR = 3.75
+# جلب الأخبار
+def fetch_news(symbol):
+    try:
+        url = f"https://eodhd.com/api/news?api_token={EODHD_API_KEY}&s={symbol}&limit=1"
+        res = requests.get(url)
+        articles = res.json()
+        if articles:
+            return articles[0]['title']
+    except:
+        return "لا توجد أخبار حالياً"
 
-الأسهم الحلال
+# جلب التوصيات
+def fetch_recommendation(symbol):
+    try:
+        url = f"https://finnhub.io/api/v1/stock/recommendation?symbol={symbol}&token={FINNHUB_API_KEY}"
+        res = requests.get(url)
+        recs = res.json()
+        if recs:
+            latest = recs[0]
+            buy = latest['buy']
+            sell = latest['sell']
+            if buy > sell:
+                return "توصية: شراء"
+            elif sell > buy:
+                return "توصية: بيع"
+            else:
+                return "توصية: احتفاظ"
+    except:
+        return "لا توجد توصية حالياً"
 
-HALAL_LIST = ["AAPL", "GOOG", "MSFT", "NVDA", "TSLA", "AMZN", "META"] WATCHLIST = HALAL_LIST.copy()
+# عرض الأسهم
+def stock_cards():
+    st.header("الأسهم")
+    watchlist = load_watchlist()
 
-حفظ الصفقات
+    filter_type = st.radio("عرض الأسهم:", ["الكل", "الحلال فقط"], horizontal=True)
+    filtered_list = [s for s in watchlist if s in HALAL_STOCKS] if filter_type == "الحلال فقط" else watchlist
 
-PORTFOLIO_FILE = "portfolio.csv" def save_trade(symbol, action, price): with open(PORTFOLIO_FILE, mode="a", newline="") as file: writer = csv.writer(file) writer.writerow([symbol, action, price, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+    new_stock = st.text_input("أضف سهم إلى قائمة المراقبة")
+    if st.button("إضافة"):
+        if new_stock and new_stock.upper() not in watchlist:
+            watchlist.append(new_stock.upper())
+            save_watchlist([[s] for s in watchlist])
+            st.success("تمت الإضافة")
 
-تسجيل الدخول
-
-def login(): st.title("تسجيل الدخول") u = st.text_input("اسم المستخدم") p = st.text_input("كلمة المرور", type="password") if st.button("دخول"): if u == USERNAME and p == PASSWORD: st.session_state.logged_in = True else: st.error("كلمة المرور أو اسم المستخدم غير صحيح")
-
-if "logged_in" not in st.session_state: st.session_state.logged_in = False
-
-if not st.session_state.logged_in: login() st.stop()
-
-فلتر الأسهم
-
-show_halal = st.sidebar.checkbox("عرض الأسهم الحلال فقط", value=True) symbols = HALAL_LIST if show_halal else WATCHLIST
-
-تحليل السهم
-
-def analyze_stock(symbol): try: df = yf.Ticker(symbol).history(period="1mo") if df.empty or "Close" not in df: return None
-
-df["MA20"] = df["Close"].rolling(window=20).mean()
-    df["EMA12"] = df["Close"].ewm(span=12, adjust=False).mean()
-    df["EMA26"] = df["Close"].ewm(span=26, adjust=False).mean()
-    df["MACD"] = df["EMA12"] - df["EMA26"]
-
-    delta = df["Close"].diff()
-    gain = delta.where(delta > 0, 0).rolling(14).mean()
-    loss = -delta.where(delta < 0, 0).rolling(14).mean()
-    rs = gain / loss
-    df["RSI"] = 100 - (100 / (1 + rs))
-
-    last = df.iloc[-1]
-    price = last["Close"]
-    macd = last["MACD"]
-    rsi = last["RSI"]
-    ma20 = last["MA20"]
-
-    if rsi < 30 and macd > 0 and price > ma20:
-        signal = "شراء قوي"
-        entry = price
-        exit_price = price * 1.05
-        suggestion = "اشتر الآن قبل الانطلاقة"
-    elif rsi > 70 and macd < 0:
-        signal = "بيع"
-        entry = price * 0.95
-        exit_price = price
-        suggestion = "يُفضل البيع قبل التصحيح"
+    if not filtered_list:
+        st.warning("لا توجد أسهم في القائمة")
     else:
-        signal = "مراقبة"
-        entry = price * 0.97
-        exit_price = price * 1.03
-        suggestion = "راقب السهم حتى يتضح الاتجاه"
+        cols = st.columns(3)
+        for i, symbol in enumerate(filtered_list):
+            try:
+                data = yf.Ticker(symbol)
+                info = data.info
+                price = data.history(period="1d")["Close"].iloc[-1]
+                prev_close = data.history(period="2d")["Close"].iloc[0]
+                change = price - prev_close
+                percent = (change / prev_close) * 100 if prev_close else 0
+                color = "green" if change >= 0 else "red"
+                news = fetch_news(symbol)
+                recommendation = fetch_recommendation(symbol)
+                with cols[i % 3]:
+                    st.markdown(f"""
+                        <div style='background-color:#111;padding:16px;border-radius:12px;margin-bottom:16px;border:1px solid #333;'>
+                            <h4 style='margin:0;color:white'>{info.get('shortName', symbol)} <span style='font-size:0.8em;color:#999;'>({symbol})</span></h4>
+                            <p style='margin:4px 0;font-size:1.1em;color:white'>${price:.2f} USD / {(price * USD_TO_SAR):.2f} SAR</p>
+                            <p style='margin:0;color:{color};font-weight:bold'>{change:+.2f} ({percent:+.2f}%)</p>
+                            <p style='color:white;font-size:0.9em;'>أخبار: {news}</p>
+                            <p style='color:yellow;font-weight:bold;'>{recommendation}</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+            except:
+                with cols[i % 3]:
+                    st.error(f"فشل في تحميل {symbol}")
 
-    return {
-        "price": price,
-        "macd": macd,
-        "rsi": rsi,
-        "ma20": ma20,
-        "signal": signal,
-        "entry": entry,
-        "exit": exit_price,
-        "suggestion": suggestion,
-        "df": df
-    }
-except:
-    return None
+# الواجهة الرئيسية
+def main_app():
+    st.sidebar.title("القائمة")
+    page = st.sidebar.selectbox("اختر الصفحة", ["الأسهم"])
+    if page == "الأسهم":
+        stock_cards()
 
-عرض السهم
+# تشغيل التطبيق
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-def display_stock(symbol): data = analyze_stock(symbol) if data is None: st.warning(f"{symbol}: تعذر تحميل البيانات.") return
-
-sar_price = data["price"] * USD_TO_SAR
-
-col1, col2 = st.columns([2, 1])
-with col1:
-    st.markdown(f"""
-        <div style='background:#1f1f1f;padding:20px;border-radius:16px;margin-bottom:15px;border:1px solid #444'>
-            <h3 style='color:#fff'>{symbol}</h3>
-            <p style='color:#ccc'>السعر: {data['price']:.2f} $ ({sar_price:.2f} ريال)</p>
-            <p style='color:#ccc'>RSI: {data['rsi']:.2f} | MACD: {data['macd']:.2f} | MA20: {data['ma20']:.2f}</p>
-            <p style='color:#0f0'><b>توصية AI: {data['signal']}</b></p>
-            <p style='color:#ff0'>اقتراح: {data['suggestion']}</p>
-            <p style='color:#aaa'>أفضل دخول: {data['entry']:.2f} $ | بيع عند: {data['exit']:.2f} $</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    col_buy, col_sell = st.columns(2)
-    with col_buy:
-        if st.button(f"شراء {symbol}"):
-            save_trade(symbol, "شراء", data["price"])
-            st.success(f"تم شراء {symbol} بسعر {data['price']:.2f}$")
-
-    with col_sell:
-        if st.button(f"بيع {symbol}"):
-            save_trade(symbol, "بيع", data["price"])
-            st.success(f"تم بيع {symbol} بسعر {data['price']:.2f}$")
-
-with col2:
-    st.write("رسم بياني للسهم")
-    fig, ax = plt.subplots()
-    data["df"]["Close"].plot(ax=ax)
-    ax.set_title(f"{symbol} - السعر خلال شهر")
-    st.pyplot(fig)
-
-عرض المحفظة
-
-def show_portfolio(): st.subheader("المحفظة الحالية") try: df = pd.read_csv(PORTFOLIO_FILE) st.dataframe(df) except FileNotFoundError: st.info("لا توجد صفقات محفوظة حتى الآن.")
-
-التطبيق الرئيسي
-
-def main(): st.title("منصة فيصل - الأسهم الذكية") page = st.sidebar.selectbox("انتقل إلى:", ["الأسهم", "المحفظة"]) sort_by = st.sidebar.selectbox("ترتيب حسب:", ["الأفضل حسب AI", "الأعلى تغيرًا", "الأرخص سعرًا"])
-
-if st.sidebar.button("تحديث الآن"):
-    st.rerun()
-
-if page == "الأسهم":
-    scored = []
-    for symbol in symbols:
-        data = analyze_stock(symbol)
-        if data:
-            score = 1 if data["signal"] == "شراء قوي" else 0
-            scored.append((symbol, score, data["price"], data["ma20"]))
-
-    if sort_by == "الأعلى تغيرًا":
-        sorted_syms = sorted(scored, key=lambda x: (x[2] - x[3]) / x[3], reverse=True)
-    elif sort_by == "الأرخص سعرًا":
-        sorted_syms = sorted(scored, key=lambda x: x[2])
-    else:
-        sorted_syms = sorted(scored, key=lambda x: x[1], reverse=True)
-
-    for s in sorted_syms:
-        display_stock(s[0])
+if not st.session_state.logged_in:
+    login()
 else:
-    show_portfolio()
-
-main()
-
+    main_app()
