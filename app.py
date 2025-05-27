@@ -9,6 +9,8 @@ from streamlit_autorefresh import st_autorefresh
 
 # إعداد الصفحة
 st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="wide")
+
+# تحديث تلقائي كل 10 ثواني
 st_autorefresh(interval=10000, limit=None, key="live_refresh")
 
 # بيانات الدخول
@@ -20,13 +22,13 @@ USD_TO_SAR = 3.75
 HALAL_LIST = ["AAPL", "GOOG", "MSFT", "NVDA", "TSLA", "AMZN", "META"]
 WATCHLIST = HALAL_LIST.copy()
 
-# دالة حفظ الصفقات
+# حفظ الصفقات
 def save_trade(symbol, action, price):
     with open("portfolio.csv", mode="a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow([symbol, action, price, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
 
-# دالة تسجيل الدخول
+# تسجيل الدخول
 def login():
     st.title("تسجيل الدخول")
     u = st.text_input("اسم المستخدم")
@@ -44,11 +46,11 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# فلتر الأسهم الحلال
+# فلتر الأسهم
 show_halal = st.sidebar.checkbox("عرض الأسهم الحلال فقط", value=True)
 symbols = HALAL_LIST if show_halal else WATCHLIST
 
-# التحليل الذكي
+# تحليل السهم
 def analyze_stock(symbol):
     try:
         df = yf.Ticker(symbol).history(period="1mo")
@@ -99,11 +101,12 @@ def analyze_stock(symbol):
             "suggestion": suggestion,
             "df": df
         }
-
     except:
         return None
 
-# عرض بطاقة السهم
+# عرض السهم
+portfolio = []
+
 def display_stock(symbol):
     data = analyze_stock(symbol)
     if data is None:
@@ -111,8 +114,9 @@ def display_stock(symbol):
         return
 
     sar_price = data["price"] * USD_TO_SAR
-    col1, col2 = st.columns([2, 1])
+    change_percent = (data["price"] - data["ma20"]) / data["ma20"] * 100
 
+    col1, col2 = st.columns([2, 1])
     with col1:
         st.markdown(f"""
             <div style='background:#1f1f1f;padding:20px;border-radius:16px;margin-bottom:15px;border:1px solid #444'>
@@ -128,11 +132,13 @@ def display_stock(symbol):
         col_buy, col_sell = st.columns(2)
         with col_buy:
             if st.button(f"شراء {symbol}"):
+                portfolio.append((symbol, data["price"], "شراء"))
                 save_trade(symbol, "شراء", data["price"])
                 st.success(f"تم شراء {symbol} بسعر {data['price']:.2f}$")
 
         with col_sell:
             if st.button(f"بيع {symbol}"):
+                portfolio.append((symbol, data["price"], "بيع"))
                 save_trade(symbol, "بيع", data["price"])
                 st.success(f"تم بيع {symbol} بسعر {data['price']:.2f}$")
 
@@ -143,17 +149,17 @@ def display_stock(symbol):
         ax.set_title(f"{symbol} - السعر خلال شهر")
         st.pyplot(fig)
 
-# عرض المحفظة
+# المحفظة
 def show_portfolio():
     st.subheader("المحفظة الحالية")
-    try:
-        df = pd.read_csv("portfolio.csv", names=["Symbol", "Action", "Price", "Time"])
-        for _, row in df.iterrows():
-            st.write(f"{row['Action']} - {row['Symbol']} بسعر {row['Price']:.2f} $ في {row['Time']}")
-    except FileNotFoundError:
-        st.info("لا توجد صفقات حتى الآن.")
+    if not portfolio:
+        st.info("لا توجد صفقات حالياً.")
+    else:
+        for item in portfolio:
+            symbol, price, action = item
+            st.write(f"{action} - {symbol} بسعر {price:.2f} $")
 
-# الصفحة الرئيسية
+# التطبيق
 def main():
     st.title("منصة فيصل - الأسهم الذكية")
     page = st.sidebar.selectbox("انتقل إلى:", ["الأسهم", "المحفظة"])
