@@ -4,16 +4,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
 
+# بيانات الدخول
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
-INVITE_CODE = "INVITE2025"
 USD_TO_SAR = 3.75
+
+# ملفات الحفظ
 WATCHLIST_FILE = "watchlist.csv"
 PORTFOLIO_FILE = "portfolio.csv"
 TRADES_FILE = "trades.csv"
 
+# الأسهم الحلال
 HALAL_STOCKS = ["AAPL", "GOOG", "MSFT", "NVDA", "TSLA", "AMZN", "META", "ADBE", "INTC", "CRM"]
 
+# إعداد الصفحة
 st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="wide")
 
 st.markdown("""
@@ -22,18 +26,19 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# تسجيل الدخول
 def login():
     st.title("تسجيل الدخول - منصة فيصل")
     username = st.text_input("اسم المستخدم")
     password = st.text_input("كلمة المرور", type="password")
-    invite = st.text_input("رمز الدعوة")
     if st.button("دخول"):
-        if username == USERNAME and password == PASSWORD and invite == INVITE_CODE:
+        if username == USERNAME and password == PASSWORD:
             st.session_state.logged_in = True
-            st.success("تم تسجيل الدخول")
+            st.experimental_rerun()
         else:
             st.error("بيانات الدخول غير صحيحة")
 
+# تحميل/حفظ البيانات
 def save_watchlist(watchlist):
     df = pd.DataFrame(watchlist, columns=["stock"])
     df.to_csv(WATCHLIST_FILE, index=False)
@@ -46,8 +51,7 @@ def load_watchlist():
         return []
 
 def save_portfolio(portfolio):
-    df = pd.DataFrame(portfolio)
-    df.to_csv(PORTFOLIO_FILE, index=False)
+    pd.DataFrame(portfolio).to_csv(PORTFOLIO_FILE, index=False)
 
 def load_portfolio():
     try:
@@ -64,6 +68,7 @@ def load_trades():
     except:
         return pd.DataFrame(columns=["stock", "action", "price", "date"])
 
+# مؤشرات التحليل الفني
 def rsi(prices, window=14):
     delta = prices.diff()
     gain = delta.clip(lower=0)
@@ -78,6 +83,7 @@ def macd(prices):
     exp2 = prices.ewm(span=26, adjust=False).mean()
     return exp1 - exp2
 
+# واجهات التطبيق
 def dashboard():
     st.header("الملخص المالي")
     trades = load_trades()
@@ -223,6 +229,7 @@ def main_app():
     elif page == "الأسهم":
         stock_cards()
 
+# البداية
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
