@@ -7,28 +7,21 @@ import csv
 from datetime import datetime
 from streamlit_autorefresh import st_autorefresh
 
-# إعداد الصفحة
 st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="wide")
+st_autorefresh(interval=10000, limit=None, key="refresh")
 
-# تحديث تلقائي كل 10 ثواني
-st_autorefresh(interval=10000, limit=None, key="live_refresh")
-
-# بيانات الدخول
 USERNAME = "faisal"
 PASSWORD = "faisal2025"
 USD_TO_SAR = 3.75
 
-# الأسهم الحلال
 HALAL_LIST = ["AAPL", "GOOG", "MSFT", "NVDA", "TSLA", "AMZN", "META"]
 WATCHLIST = HALAL_LIST.copy()
 
-# حفظ الصفقات
 def save_trade(symbol, action, price):
     with open("portfolio.csv", mode="a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow([symbol, action, price, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
 
-# تسجيل الدخول
 def login():
     st.title("تسجيل الدخول")
     u = st.text_input("اسم المستخدم")
@@ -46,11 +39,9 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# فلتر الأسهم
 show_halal = st.sidebar.checkbox("عرض الأسهم الحلال فقط", value=True)
 symbols = HALAL_LIST if show_halal else WATCHLIST
 
-# تحليل السهم
 def analyze_stock(symbol):
     try:
         df = yf.Ticker(symbol).history(period="1mo")
@@ -68,27 +59,30 @@ def analyze_stock(symbol):
         rs = gain / loss
         df["RSI"] = 100 - (100 / (1 + rs))
 
+        # تقييم وهمي للأخبار كمثال تجريبي
+        news_score = np.random.uniform(-1, 1)
+
         last = df.iloc[-1]
         price = last["Close"]
         macd = last["MACD"]
         rsi = last["RSI"]
         ma20 = last["MA20"]
 
-        if rsi < 30 and macd > 0 and price > ma20:
+        if news_score > 0.3 and rsi < 30 and macd > 0 and price > ma20:
             signal = "شراء قوي"
             entry = price
             exit_price = price * 1.05
-            suggestion = "اشتر الآن قبل الانطلاقة"
-        elif rsi > 70 and macd < 0:
-            signal = "بيع"
+            suggestion = "أخبار إيجابية وسهم تحت تقييمه، فرصة دخول"
+        elif news_score < -0.3 and rsi > 70 and macd < 0:
+            signal = "بيع فوري"
             entry = price * 0.95
             exit_price = price
-            suggestion = "يُفضل البيع قبل التصحيح"
+            suggestion = "أخبار سلبية ومؤشرات تدل على هبوط متوقع"
         else:
-            signal = "انتظار"
+            signal = "مراقبة"
             entry = price * 0.97
             exit_price = price * 1.03
-            suggestion = "راقب حتى يتضح الاتجاه"
+            suggestion = "راقب السهم حتى يتضح الاتجاه"
 
         return {
             "price": price,
@@ -104,7 +98,6 @@ def analyze_stock(symbol):
     except:
         return None
 
-# عرض السهم
 portfolio = []
 
 def display_stock(symbol):
@@ -149,7 +142,6 @@ def display_stock(symbol):
         ax.set_title(f"{symbol} - السعر خلال شهر")
         st.pyplot(fig)
 
-# المحفظة
 def show_portfolio():
     st.subheader("المحفظة الحالية")
     if not portfolio:
@@ -159,7 +151,6 @@ def show_portfolio():
             symbol, price, action = item
             st.write(f"{action} - {symbol} بسعر {price:.2f} $")
 
-# التطبيق
 def main():
     st.title("منصة فيصل - الأسهم الذكية")
     page = st.sidebar.selectbox("انتقل إلى:", ["الأسهم", "المحفظة"])
