@@ -11,7 +11,7 @@ st.set_page_config(page_title="منصة فيصل - الذكاء الصناعي �
 st_autorefresh(interval=5000, key="auto-refresh")
 
 # إعدادات عامة
-FINNHUB_API_KEY = "ضع_مفتاحك_هنا"
+FINNHUB_API_KEY = "d0rkv69r01qumepese1gd0rkv69r01qumepese20"
 EODHD_API_KEY = "ضع_مفتاحك_هنا"
 USD_TO_SAR = 3.75
 HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "GOOG", "AMZN", "NVDA"]
