@@ -3,14 +3,12 @@ import yfinance as yf
 import pandas as pd
 import requests
 from streamlit_autorefresh import st_autorefresh
-from sklearn.linear_model import LinearRegression
-import numpy as np
 
 st.set_page_config(page_title="منصة فيصل - الذكاء الصناعي الحقيقي", layout="wide")
 st_autorefresh(interval=5000, key="auto-refresh")
 
-FINNHUB_API_KEY = "d0rm6m1r01qumepf3hi0d0rm6m1r01qumepf3hig"
-EODHD_API_KEY = "ضع_مفتاحك_هنا"
+FINNHUB_API_KEY = "مفتاحك"
+EODHD_API_KEY = "مفتاحك"
 USD_TO_SAR = 3.75
 HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "GOOG", "AMZN", "NVDA"]
 
@@ -58,40 +56,47 @@ def estimate_days_to_target(change_percent):
     else:
         return "من 2 إلى 4 أيام"
 
-def calculate_rsi(data, period=14):
-    delta = data["Close"].diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(window=period).mean()
-    avg_loss = loss.rolling(window=period).mean()
-    rs = avg_gain / avg_loss
-    return 100 - (100 / (1 + rs))
+def smart_ai_recommendation(symbol):
+    try:
+        data = yf.Ticker(symbol)
+        hist = data.history(period="14d")
+        if len(hist) < 12:
+            return {"recommendation": "🔍 بيانات غير كافية", "reason": "لا يمكن تحليل MACD أو الحجم"}
 
-def calculate_macd(data):
-    exp1 = data["Close"].ewm(span=12, adjust=False).mean()
-    exp2 = data["Close"].ewm(span=26, adjust=False).mean()
-    macd = exp1 - exp2
-    signal = macd.ewm(span=9, adjust=False).mean()
-    return macd, signal
+        price = hist["Close"].iloc[-1]
+        volume_today = hist["Volume"].iloc[-1]
+        volume_avg = hist["Volume"].mean()
+
+        short_ema = hist["Close"].ewm(span=12, adjust=False).mean()
+        long_ema = hist["Close"].ewm(span=26, adjust=False).mean()
+        macd = short_ema - long_ema
+        signal = macd.ewm(span=9, adjust=False).mean()
+
+        if macd.iloc[-1] > signal.iloc[-1] and volume_today > volume_avg:
+            return {"recommendation": "✅ دخول ذكي", "reason": "MACD إيجابي + حجم تداول مرتفع"}
+        elif macd.iloc[-1] < signal.iloc[-1]:
+            return {"recommendation": "🚪 خروج ذكي", "reason": "MACD سلبي"}
+        else:
+            return {"recommendation": "⏳ انتظار", "reason": "لا توجد إشارة واضحة"}
+    except:
+        return {"recommendation": "⚠️ خطأ", "reason": "تعذر تحليل السهم"}
 
 def evaluate_opportunity(symbol):
     try:
         data = yf.Ticker(symbol)
-        hist = data.history(period="30d")
-        if len(hist) < 20:
+        hist = data.history(period="7d")
+        if len(hist) < 2:
             return None
 
         price = hist["Close"].iloc[-1]
-        prev = hist["Close"].iloc[-2]
+        prev = hist["Close"].iloc[0]
         change = price - prev
         percent = (change / prev) * 100 if prev else 0
+
         news = get_news(symbol)
         sentiment = analyze_news(news)
         buy, sell, hold = get_analyst_opinion(symbol)
-        rsi = calculate_rsi(hist).iloc[-1]
-        macd, signal = calculate_macd(hist)
-        macd_signal_diff = macd.iloc[-1] - signal.iloc[-1]
-        volume = hist["Volume"].iloc[-1]
+        ai = smart_ai_recommendation(symbol)
 
         score = 0
         reasons = []
@@ -107,17 +112,8 @@ def evaluate_opportunity(symbol):
             reasons.append("👨‍💼 عدد المشترين أعلى من البائعين")
         if price > prev:
             reasons.append("🕯️ الشمعة صاعدة")
-        if rsi < 70:
-            score += 1
-            reasons.append("📊 RSI جيد")
-        if macd_signal_diff > 0:
-            score += 1
-            reasons.append("📈 مؤشر MACD إيجابي")
-        if volume > hist["Volume"].mean():
-            score += 1
-            reasons.append("🔊 حجم تداول مرتفع")
 
-        recommendation = "✅ دخول" if score >= 3 else "⏳ انتظار"
+        recommendation = "✅ دخول" if score >= 2 else "⏳ انتظار"
         entry_price = round(price - (price * 0.01), 2)
         target_price = round(price + (price * 0.03), 2)
         exit_price = round(price + (price * 0.04), 2)
@@ -134,7 +130,9 @@ def evaluate_opportunity(symbol):
             "entry_price": entry_price,
             "target_price": target_price,
             "exit_price": exit_price,
-            "estimated_days": estimated_days
+            "estimated_days": estimated_days,
+            "ai_recommendation": ai["recommendation"],
+            "ai_reason": ai["reason"]
         }
     except:
         return None
@@ -153,7 +151,9 @@ def show_stock_card(data):
         <p style='color:lime;'>💡 أفضل دخول: {data['entry_price']}$</p>
         <p style='color:#00FF99;'>🎯 الهدف: {data['target_price']}$</p>
         <p style='color:#FFCC00;'>🚪 الخروج: عند {data['exit_price']}$</p>
-        <p style='color:#87CEEB;'>🕐 المدة المتوقعة للوصول للهدف: {data['estimated_days']}</p>
+        <p style='color:#87CEEB;'>🕐 المدة المتوقعة: {data['estimated_days']}</p>
+        <p style='color:lightgreen;'>🤖 الذكاء الصناعي: {data['ai_recommendation']}</p>
+        <p style='color:#FFA500;'>📊 تحليل AI: {data['ai_reason']}</p>
     </div>
     """, unsafe_allow_html=True)
 
