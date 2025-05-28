@@ -4,19 +4,14 @@ import pandas as pd
 import requests
 from streamlit_autorefresh import st_autorefresh
 
-# إعداد الصفحة
 st.set_page_config(page_title="منصة فيصل - الذكاء الصناعي الحقيقي", layout="wide")
-
-# تحديث تلقائي كل 5 ثواني
 st_autorefresh(interval=5000, key="auto-refresh")
 
-# إعدادات عامة
-FINNHUB_API_KEY = "d0rkv69r01qumepese1gd0rkv69r01qumepese20"
+FINNHUB_API_KEY = "ضع_مفتاحك_هنا"
 EODHD_API_KEY = "ضع_مفتاحك_هنا"
 USD_TO_SAR = 3.75
 HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "GOOG", "AMZN", "NVDA"]
 
-# جلب الأخبار
 def get_news(symbol):
     try:
         url = f"https://eodhd.com/api/news?api_token={EODHD_API_KEY}&s={symbol}&limit=1"
@@ -28,7 +23,6 @@ def get_news(symbol):
         pass
     return "لا توجد أخبار حالياً"
 
-# تحليل الأخبار
 def analyze_news(title):
     positives = ["expands", "growth", "launch", "beat", "strong"]
     negatives = ["cut", "miss", "drop", "loss", "decline"]
@@ -40,7 +34,6 @@ def analyze_news(title):
             return "سلبي"
     return "محايد"
 
-# توصيات المحللين
 def get_analyst_opinion(symbol):
     try:
         url = f"https://finnhub.io/api/v1/stock/recommendation?symbol={symbol}&token={FINNHUB_API_KEY}"
@@ -53,11 +46,20 @@ def get_analyst_opinion(symbol):
         pass
     return 0, 0, 0
 
-# تحليل الذكاء الصناعي
+def estimate_days_to_target(change_percent):
+    if change_percent <= 0.5:
+        return "من 10 إلى 15 يوم"
+    elif change_percent <= 1:
+        return "من 7 إلى 10 أيام"
+    elif change_percent <= 2:
+        return "من 4 إلى 7 أيام"
+    else:
+        return "من 2 إلى 4 أيام"
+
 def evaluate_opportunity(symbol):
     try:
         data = yf.Ticker(symbol)
-        hist = data.history(period="7d")
+        hist = data.history(period="2d")
         if len(hist) < 2:
             return None
 
@@ -82,15 +84,14 @@ def evaluate_opportunity(symbol):
         if buy > sell:
             score += 1
             reasons.append("👨‍💼 عدد المشترين أعلى من البائعين")
-
-        # تحليل الشمعة اليابانية
         if price > prev:
             reasons.append("🕯️ الشمعة صاعدة")
 
         recommendation = "✅ دخول" if score >= 2 else "⏳ انتظار"
-        entry_price = round(price * 0.98, 2)
-        target_price = round(price * 1.03, 2)
-        exit_price = round(price * 1.04, 2)
+        entry_price = round(price - (price * 0.01), 2)
+        target_price = round(price + (price * 0.03), 2)
+        exit_price = round(price + (price * 0.04), 2)
+        estimated_days = estimate_days_to_target(percent)
 
         return {
             "symbol": symbol,
@@ -102,30 +103,30 @@ def evaluate_opportunity(symbol):
             "reason": " | ".join(reasons),
             "entry_price": entry_price,
             "target_price": target_price,
-            "exit_price": exit_price
+            "exit_price": exit_price,
+            "estimated_days": estimated_days
         }
     except:
         return None
 
-# عرض كرت السهم
 def show_stock_card(data):
     color = "green" if data["percent"] >= 0 else "red"
     st.markdown(f"""
     <div style='border:1px solid #444; border-radius:16px; padding:20px; margin-bottom:20px; background:#111;'>
         <h4 style='color:white;'><img src='https://logo.clearbit.com/{data['symbol'].lower()}.com' width='28'> {data['symbol']}</h4>
-        <p style='color:white;'>السعر: {data['price'] * USD_TO_SAR:.2f} ريال / {data['price']:.2f}$</p>
-        <p style='color:{color}; font-weight:bold;'>% التغير: {data['percent']:.2f}%</p>
+        <p style='color:white;'>السعر: {data['price'] * USD_TO_SAR:.2f} ريال / {data['price']}$</p>
+        <p style='color:{color}; font-weight:bold;'>% التغير: {data['percent']:.2f}+ </p>
         <p style='color:white;'>📰 الأخبار: {data['news']}</p>
         <p style='color:yellow;'>👨‍💼 المحللون: {data['analyst']}</p>
         <p style='color:cyan; font-weight:bold;'>✅ التوصية: {data['recommendation']}</p>
-        <p style='color:lime;'>📥 أفضل دخول: {data['entry_price']}$</p>
-        <p style='color:orange;'>🎯 الهدف: {data['target_price']}$</p>
-        <p style='color:red;'>🚪 الخروج: عند {data['exit_price']}$</p>
-        <p style='color:gold;'>📌 السبب: {data['reason']}</p>
+        <p style='color:orange;'>📌 السبب: {data['reason']}</p>
+        <p style='color:lime;'>💡 أفضل دخول: {data['entry_price']}$</p>
+        <p style='color:#00FF99;'>🎯 الهدف: {data['target_price']}$</p>
+        <p style='color:#FFCC00;'>🚪 الخروج: عند {data['exit_price']}$</p>
+        <p style='color:#87CEEB;'>🕐 المدة المتوقعة للوصول للهدف: {data['estimated_days']}</p>
     </div>
     """, unsafe_allow_html=True)
 
-# واجهة المستخدم
 st.title("منصة فيصل - الذكاء الصناعي الحقيقي")
 query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
 
