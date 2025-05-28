@@ -1,17 +1,29 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import plotly.graph_objects as go
 import requests
 import time
+
+# تحديث تلقائي كل 5 ثواني
+st.experimental_set_query_params(t=int(time.time()))
+st.markdown(
+    """<meta http-equiv="refresh" content="5">""",
+    unsafe_allow_html=True
+)
+
+# إعداد الصفحة
+st.set_page_config(page_title="منصة فيصل - الذكاء الصناعي", layout="wide")
+st.title("منصة فيصل - الذكاء الصناعي الحقيقي")
 
 # مفاتيح API
 FINNHUB_API_KEY = "ضع_مفتاحك_هنا"
 EODHD_API_KEY = "ضع_مفتاحك_هنا"
 USD_TO_SAR = 3.75
-HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "NVDA", "GOOG", "AMZN", "ADSK", "AMD", "ABNB", "AXP"]
 
-# تحميل شعار السهم
+# قائمة الأسهم الحلال
+HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "NVDA", "GOOG", "AMZN"]
+
+# الحصول على شعار السهم
 def get_stock_logo(symbol):
     return f"https://logo.clearbit.com/{symbol.lower()}.com"
 
@@ -39,7 +51,7 @@ def analyze_news(title):
             return "سلبي"
     return "محايد"
 
-# رأي المحللين
+# آراء المحللين
 def get_analyst_opinion(symbol):
     try:
         url = f"https://finnhub.io/api/v1/stock/recommendation?symbol={symbol}&token={FINNHUB_API_KEY}"
@@ -52,14 +64,13 @@ def get_analyst_opinion(symbol):
         pass
     return 0, 0, 0
 
-# تحليل السهم
+# تحليل الفرصة الاستثمارية
 def evaluate_opportunity(symbol):
     try:
         data = yf.Ticker(symbol)
         hist = data.history(period="2d")
         if len(hist) < 2:
             return None
-
         price = hist["Close"].iloc[-1]
         prev = hist["Close"].iloc[0]
         change = price - prev
@@ -70,12 +81,21 @@ def evaluate_opportunity(symbol):
         buy, sell, hold = get_analyst_opinion(symbol)
 
         score = 0
+        if sentiment == "إيجابي": score += 1
+        if change > 0: score += 1
+        if buy > sell: score += 1
+
+        recommendation = "✅ دخول 🟢" if score >= 2 else "⏳ انتظار"
+        reason_parts = []
+
+        if percent > 0:
+            reason_parts.append("📈 السعر مرتفع")
         if sentiment == "إيجابي":
-            score += 1
-        if change > 0:
-            score += 1
+            reason_parts.append("📰 أخبار إيجابية")
         if buy > sell:
-            score += 1
+            reason_parts.append("👨‍💼 عدد المشترين أعلى من البائعين")
+
+        reason = " / ".join(reason_parts)
 
         return {
             "symbol": symbol,
@@ -83,8 +103,8 @@ def evaluate_opportunity(symbol):
             "percent": percent,
             "news": sentiment,
             "analyst": f"{buy} شراء / {sell} بيع / {hold} احتفاظ",
-            "recommendation": "✅ دخول" if score >= 2 else "⏳ انتظار",
-            "score": score
+            "recommendation": recommendation,
+            "reason": reason
         }
     except:
         return None
@@ -94,46 +114,30 @@ def show_stock_card(data):
     logo_url = get_stock_logo(data['symbol'])
     color = "green" if data['percent'] >= 0 else "red"
 
-    # بناء السبب
-    reason_parts = []
-    if data['percent'] > 0:
-        reason_parts.append("⬆️ السعر مرتفع")
-    if data['news'] == "إيجابي":
-        reason_parts.append("📰 خبر إيجابي")
-    if "شراء" in data['analyst'] and "بيع" in data['analyst']:
-        try:
-            buy = int(data['analyst'].split("شراء")[0].strip())
-            sell = int(data['analyst'].split("بيع")[0].split("/")[-1].strip())
-            if buy > sell:
-                reason_parts.append("👥 المحللين: الشراء أعلى من البيع")
-        except:
-            pass
-    reason = " | ".join(reason_parts)
-    reason_display = f"📌 السبب: {reason}" if reason else ""
-
     st.markdown(f"""
-        <div style='border:1px solid #444; border-radius:16px; padding:20px; margin-bottom:20px; background:#111;'>
+        <div style='border:1px solid #444; border-radius:16px; padding:16px; margin-bottom:20px; background:#111;'>
             <div style='display:flex; align-items:center;'>
-                <img src="{logo_url}" width='36' style='margin-left:10px'/>
-                <h4 style='margin:0; color:white'>{data['symbol'].upper()}</h4>
+                <img src="{logo_url}" width="36" style="margin-left:10px">
+                <h4 style='margin:0; color:white;'>{data['symbol'].upper()}</h4>
             </div>
-            <p style='color:white;'>السعر: {data['price']:.2f}$ / {data['price'] * USD_TO_SAR:.2f} ريال</p>
+            <p style='color:white;'>السعر: ${data['price']:.2f} / {data['price'] * USD_TO_SAR:.2f} ريال</p>
             <p style='color:{color}; font-weight:bold;'>التغير: {data['percent']:.2f}%</p>
             <p style='color:white;'>📰 الأخبار: {data['news']}</p>
-            <p style='color:yellow;'>👨🏻‍💼 المحللون: {data['analyst']}</p>
+            <p style='color:yellow;'>👨‍💼 المحللون: {data['analyst']}</p>
             <p style='color:cyan; font-weight:bold;'>✅ التوصية: {data['recommendation']}</p>
-            <p style='color:orange;'>{reason_display}</p>
+            <p style='color:orange;'>📌 السبب: {data['reason']}</p>
         </div>
     """, unsafe_allow_html=True)
 
 # واجهة المستخدم
-st.set_page_config(page_title="منصة فيصل - الذكاء الصناعي", layout="wide")
-st.title("منصة فيصل - الذكاء الصناعي الحقيقي")
+st.markdown("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
+query = st.text_input("")
 
-symbols_input = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
-if symbols_input:
-    filtered = [s for s in HALAL_STOCKS if s.startswith(symbols_input.upper())]
-    for symbol in filtered:
-        result = evaluate_opportunity(symbol)
-        if result:
-            show_stock_card(result)
+matches = [s for s in HALAL_STOCKS if s.startswith(query.upper())] if query else HALAL_STOCKS
+
+for symbol in matches:
+    result = evaluate_opportunity(symbol)
+    if result:
+        show_stock_card(result)
+    else:
+        st.warning(f"⚠️ تعذر عرض بيانات السهم {symbol}")
