@@ -83,13 +83,14 @@ def evaluate_opportunity(symbol):
             score += 1
             reasons.append("👨‍💼 عدد المشترين أعلى من البائعين")
 
+        # تحليل الشمعة اليابانية
         if price > prev:
             reasons.append("🕯️ الشمعة صاعدة")
 
         recommendation = "✅ دخول" if score >= 2 else "⏳ انتظار"
-        target_price = round(price * 1.025, 2)
-        exit_price = round(price * 1.035, 2)
-        best_entry = round(price * 0.99, 2)
+        entry_price = round(price * 0.98, 2)
+        target_price = round(price * 1.03, 2)
+        exit_price = round(price * 1.04, 2)
 
         return {
             "symbol": symbol,
@@ -99,9 +100,9 @@ def evaluate_opportunity(symbol):
             "analyst": f"{buy} شراء / {sell} بيع / {hold} احتفاظ",
             "recommendation": recommendation,
             "reason": " | ".join(reasons),
-            "target": target_price,
-            "exit": exit_price,
-            "entry": best_entry
+            "entry_price": entry_price,
+            "target_price": target_price,
+            "exit_price": exit_price
         }
     except:
         return None
@@ -112,15 +113,15 @@ def show_stock_card(data):
     st.markdown(f"""
     <div style='border:1px solid #444; border-radius:16px; padding:20px; margin-bottom:20px; background:#111;'>
         <h4 style='color:white;'><img src='https://logo.clearbit.com/{data['symbol'].lower()}.com' width='28'> {data['symbol']}</h4>
-        <p style='color:white;'>السعر: {data['price'] * USD_TO_SAR:.2f} ريال / {data['price']}$</p>
-        <p style='color:{color}; font-weight:bold;'>% التغير: {data['percent']:.2f}+ </p>
+        <p style='color:white;'>السعر: {data['price'] * USD_TO_SAR:.2f} ريال / {data['price']:.2f}$</p>
+        <p style='color:{color}; font-weight:bold;'>% التغير: {data['percent']:.2f}%</p>
         <p style='color:white;'>📰 الأخبار: {data['news']}</p>
         <p style='color:yellow;'>👨‍💼 المحللون: {data['analyst']}</p>
         <p style='color:cyan; font-weight:bold;'>✅ التوصية: {data['recommendation']}</p>
-        <p style='color:orange;'>🎯 الهدف: {data['target']} $</p>
-        <p style='color:red;'>🚪 الخروج: {data['exit']} $</p>
-        <p style='color:green;'>🟢 أفضل دخول: {data['entry']} $</p>
-        <p style='color:orange;'>📌 السبب: {data['reason']}</p>
+        <p style='color:lime;'>📥 أفضل دخول: {data['entry_price']}$</p>
+        <p style='color:orange;'>🎯 الهدف: {data['target_price']}$</p>
+        <p style='color:red;'>🚪 الخروج: عند {data['exit_price']}$</p>
+        <p style='color:gold;'>📌 السبب: {data['reason']}</p>
     </div>
     """, unsafe_allow_html=True)
 
