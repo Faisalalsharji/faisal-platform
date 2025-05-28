@@ -57,7 +57,7 @@ def get_analyst_opinion(symbol):
 def evaluate_opportunity(symbol):
     try:
         data = yf.Ticker(symbol)
-        hist = data.history(period="2d")
+        hist = data.history(period="7d")
         if len(hist) < 2:
             return None
 
