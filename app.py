@@ -7,7 +7,10 @@
 
 --- الإعدادات ---
 
-FINNHUB_API_KEY = "ضع_مفتاحك" EODHD_API_KEY = "ضع_مفتاحك" USD_TO_SAR = 3.75 PORTFOLIO_FILE = "portfolio.csv"
+FINNHUB_API_KEY = "ضع_مفتاحك"
+EODHD_API_KEY = "ضع_مفتاحك"
+USD_TO_SAR = 3.75
+PORTFOLIO_FILE = "portfolio.csv"
 
 --- وظائف المساعدة ---
 
