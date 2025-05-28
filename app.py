@@ -73,7 +73,7 @@ def evaluate_opportunity(symbol):
                 "symbol": symbol,
                 "price": 0,
                 "percent": 0,
-                "news": "لا توجد بيانات",
+                "news": "لا توجد بيانات كافية (ربما السوق مغلق)",
                 "analyst": "-",
                 "recommendation": "لا يمكن التحليل",
                 "score": 0
@@ -129,83 +129,20 @@ def show_stock_card(data):
     </div>
     """, unsafe_allow_html=True)
 
-# --- المحفظة ---
-def load_portfolio():
-    if os.path.exists(PORTFOLIO_FILE):
-        return pd.read_csv(PORTFOLIO_FILE)
-    return pd.DataFrame(columns=["رمز السهم", "الكمية", "سعر الشراء"])
-
-def save_portfolio(df):
-    df.to_csv(PORTFOLIO_FILE, index=False)
-
-def portfolio_page():
-    st.subheader("📦 المحفظة")
-    df = load_portfolio()
-
-    if not df.empty:
-        delete_index = st.selectbox("اختر الصفقة المراد حذفها", df.index, format_func=lambda i: f"{df.loc[i, 'رمز السهم']} - {df.loc[i, 'الكمية']} سهم @ {df.loc[i, 'سعر الشراء']}$")
-        if st.button("🗑️ حذف الصفقة"):
-            df = df.drop(delete_index).reset_index(drop=True)
-            save_portfolio(df)
-            st.success("تم حذف الصفقة.")
-
-    st.dataframe(df)
-
-    with st.form("إضافة صفقة"):
-        symbol = st.text_input("رمز السهم")
-        quantity = st.number_input("الكمية", min_value=1)
-        buy_price = st.number_input("سعر الشراء")
-        submitted = st.form_submit_button("إضافة")
-        if submitted and symbol:
-            new_row = pd.DataFrame([[symbol.upper(), quantity, buy_price]], columns=df.columns)
-            df = pd.concat([df, new_row], ignore_index=True)
-            save_portfolio(df)
-            st.success("تمت إضافة الصفقة للمحفظة.")
-
-    if not df.empty:
-        st.subheader("📊 تحليل الربح / الخسارة")
-        profits = []
-        percents = []
-        for _, row in df.iterrows():
-            try:
-                current_price = yf.Ticker(row["رمز السهم"]).history(period="1d")["Close"].iloc[-1]
-                profit = (current_price - row["سعر الشراء"]) * row["الكمية"]
-                percent = ((current_price - row["سعر الشراء"]) / row["سعر الشراء"]) * 100
-                profits.append(profit)
-                percents.append(percent)
-            except:
-                profits.append(0)
-                percents.append(0)
-        df["الربح"] = profits
-        df["نسبة الربح (%)"] = [f"{p:.2f}%" for p in percents]
-        st.dataframe(df)
-        st.info(f"💰 إجمالي الربح الحالي: {sum(profits):.2f} دولار")
-
-# --- الواجهة الرئيسية ---
+# --- الواجهة ---
 st.set_page_config(page_title="الأسهم الذكية - فيصل", layout="wide")
 st.title("منصة فيصل - الذكاء الصناعي الحقيقي")
 
-menu = st.sidebar.radio("اختر الصفحة", ["تحليل الأسهم", "أفضل الفرص", "المحفظة"])
+symbols_input = st.text_input("أدخل رموز الأسهم مفصولة بفاصلة (مثل: AAPL, TSLA, MSFT)")
+st.caption("📌 ملاحظة: تأكد من كتابة رمز السهم الصحيح (مثل: AAPL). بعض البيانات قد لا تظهر إذا كان السوق مغلق.")
 
-if menu == "تحليل الأسهم":
-    symbols_input = st.text_input("أدخل رموز الأسهم مفصولة بفاصلة (مثل: AAPL, TSLA, MSFT)")
-    if st.button("تحليل"):
-        if symbols_input:
-            symbols = [s.strip().upper() for s in symbols_input.split(",")]
-            for symbol in symbols:
-                result = evaluate_opportunity(symbol)
-                show_stock_card(result)
-                st.plotly_chart(plot_candlestick(symbol), use_container_width=True)
-
-elif menu == "أفضل الفرص":
-    symbols_input = st.text_input("أدخل رموز الأسهم لتقييم أفضل الفرص (مثل: AAPL, TSLA, MSFT)")
-    if st.button("ترتيب الفرص"):
-        if symbols_input:
-            symbols = [s.strip().upper() for s in symbols_input.split(",")]
-            results = [evaluate_opportunity(sym) for sym in symbols]
-            sorted_results = sorted(results, key=lambda x: x['score'], reverse=True)
-            for res in sorted_results:
-                show_stock_card(res)
-
-elif menu == "المحفظة":
-    portfolio_page()
+if st.button("تحليل"):
+    if symbols_input:
+        symbols = [s.strip().upper() for s in symbols_input.split(",")]
+        for symbol in symbols:
+            if not symbol.isalpha() or len(symbol) > 5:
+                st.warning(f"❗ رمز غير صحيح: {symbol}")
+                continue
+            result = evaluate_opportunity(symbol)
+            show_stock_card(result)
+            st.plotly_chart(plot_candlestick(symbol), use_container_width=True)
