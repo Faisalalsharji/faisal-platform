@@ -17,6 +17,7 @@ HALAL_STOCKS = [
 ]
 
 # وظائف التحليل
+
 def get_news(symbol):
     try:
         url = f"https://eodhd.com/api/news?api_token={EODHD_API_KEY}&s={symbol}&limit=1"
@@ -26,7 +27,7 @@ def get_news(symbol):
             return articles[0]['title']
     except:
         pass
-    return "لا توجد أخبار حالياً"
+    return "لا توجد أخبار حاليًا"
 
 def analyze_news(title):
     positives = ["expands", "growth", "launch", "beat", "strong"]
@@ -74,7 +75,7 @@ def evaluate_stock(symbol):
             "percent": percent,
             "news": sentiment,
             "analyst": f"{buy} شراء / {sell} بيع / {hold} احتفاظ",
-            "recommendation": "✅ دخول" if score >= 2 else "⏳ انتظار",
+            "recommendation": "✅ دخول 📈" if score >= 2 else "⏳ انتظار",
             "score": score
         }
     except:
@@ -83,20 +84,20 @@ def evaluate_stock(symbol):
 def show_stock_card(data):
     color = "green" if data['percent'] >= 0 else "red"
     st.markdown(f"""
-    <div style='border:1px solid #444; border-radius:16px; padding:16px; margin-bottom:20px; background:#111;'>
-        <h4 style='margin:0; color:white'>{data['symbol'].upper()}</h4>
-        <p style='color:white;'>السعر: ${data['price']:.2f} / {(data['price'] * USD_TO_SAR):.2f} ريال</p>
-        <p style='color:{color}; font-weight:bold;'>التغير: {data['percent']:+.2f}%</p>
-        <p style='color:white;'>📰 الأخبار: {data['news']}</p>
-        <p style='color:yellow;'>👨‍💼 المحللون: {data['analyst']}</p>
-        <p style='color:cyan; font-weight:bold;'>✅ التوصية: {data['recommendation']}</p>
-    </div>
+        <div style='border:1px solid #444; border-radius:16px; padding:16px; margin-bottom:20px; background:#111;'>
+            <h4 style='margin:0; color:white'>{data['symbol'].upper()}</h4>
+            <p style='color:white;'>السعر: ${data['price']:.2f} / {(data['price'] * USD_TO_SAR):.2f} ريال</p>
+            <p style='color:{color}; font-weight:bold;'>التغير: {data['percent']:+.2f}%</p>
+            <p style='color:white;'>📰 الأخبار: {data['news']}</p>
+            <p style='color:yellow;'>👨‍💼 المحللون: {data['analyst']}</p>
+            <p style='color:cyan; font-weight:bold;'>✅ التوصية: {data['recommendation']}</p>
+        </div>
     """, unsafe_allow_html=True)
 
 # واجهة المستخدم
 st.title("منصة فيصل - الأسهم الحلال الذكية")
+query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
 
-query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلًا A)")
 matches = [s for s in HALAL_STOCKS if s.startswith(query.upper())] if query else HALAL_STOCKS
 
 for symbol in matches:
