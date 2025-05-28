@@ -1,4 +1,9 @@
-import streamlit as st import yfinance as yf import pandas as pd import plotly.graph_objects as go import requests import os
+1 | import streamlit as st
+2 | import yfinance as yf
+3 | import pandas as pd
+4 | import plotly.graph_objects as go
+5 | import requests
+6 | import os
 
 --- الإعدادات ---
 
