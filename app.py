@@ -6,7 +6,7 @@ import requests
 import os
 
 # --- الإعدادات ---
-FINNHUB_API_KEY = "ضع_مفتاحك"
+FINNHUB_API_KEY = "d0ra3q1r01qn4tjhdq6gd0ra3q1r01qn4tjhdq6g"
 EODHD_API_KEY = "ضع_مفتاحك"
 USD_TO_SAR = 3.75
 PORTFOLIO_FILE = "portfolio.csv"
@@ -27,12 +27,12 @@ def get_news(symbol):
     return "لا توجد أخبار حاليًا"
 
 def analyze_news(title):
-    positive_keywords = ["expands", "growth", "launch", "beat", "strong"]
-    negative_keywords = ["cut", "miss", "drop", "loss", "decline"]
-    for word in positive_keywords:
+    positive = ["expands", "growth", "launch", "beat", "strong"]
+    negative = ["cut", "miss", "drop", "loss", "decline"]
+    for word in positive:
         if word in title.lower():
             return "إيجابي"
-    for word in negative_keywords:
+    for word in negative:
         if word in title.lower():
             return "سلبي"
     return "محايد"
@@ -73,7 +73,7 @@ def evaluate_opportunity(symbol):
                 "symbol": symbol,
                 "price": 0,
                 "percent": 0,
-                "news": "لا توجد بيانات كافية (ربما السوق مغلق)",
+                "news": "لا توجد بيانات",
                 "analyst": "-",
                 "recommendation": "لا يمكن التحليل",
                 "score": 0
@@ -134,7 +134,7 @@ st.set_page_config(page_title="الأسهم الذكية - فيصل", layout="wi
 st.title("منصة فيصل - الذكاء الصناعي الحقيقي")
 
 symbols_input = st.text_input("أدخل رموز الأسهم مفصولة بفاصلة (مثل: AAPL, TSLA, MSFT)")
-st.caption("📌 ملاحظة: تأكد من كتابة رمز السهم الصحيح (مثل: AAPL). بعض البيانات قد لا تظهر إذا كان السوق مغلق.")
+st.caption("📌 ملاحظة: تأكد من كتابة رمز السهم الصحيح (مثل: AAPL). البيانات قد لا تظهر إذا كان السوق مغلق.")
 
 if st.button("تحليل"):
     if symbols_input:
