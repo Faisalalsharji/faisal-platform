@@ -4,14 +4,19 @@ import pandas as pd
 import requests
 from streamlit_autorefresh import st_autorefresh
 
+# إعداد الصفحة
 st.set_page_config(page_title="منصة فيصل - الذكاء الصناعي الحقيقي", layout="wide")
+
+# تحديث تلقائي كل 5 ثواني
 st_autorefresh(interval=5000, key="auto-refresh")
 
+# إعدادات عامة
 FINNHUB_API_KEY = "ضع_مفتاحك_هنا"
 EODHD_API_KEY = "ضع_مفتاحك_هنا"
 USD_TO_SAR = 3.75
 HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "GOOG", "AMZN", "NVDA"]
 
+# جلب الأخبار
 def get_news(symbol):
     try:
         url = f"https://eodhd.com/api/news?api_token={EODHD_API_KEY}&s={symbol}&limit=1"
@@ -23,6 +28,7 @@ def get_news(symbol):
         pass
     return "لا توجد أخبار حالياً"
 
+# تحليل الأخبار
 def analyze_news(title):
     positives = ["expands", "growth", "launch", "beat", "strong"]
     negatives = ["cut", "miss", "drop", "loss", "decline"]
@@ -34,6 +40,7 @@ def analyze_news(title):
             return "سلبي"
     return "محايد"
 
+# توصيات المحللين
 def get_analyst_opinion(symbol):
     try:
         url = f"https://finnhub.io/api/v1/stock/recommendation?symbol={symbol}&token={FINNHUB_API_KEY}"
@@ -46,6 +53,7 @@ def get_analyst_opinion(symbol):
         pass
     return 0, 0, 0
 
+# تحليل الذكاء الصناعي
 def evaluate_opportunity(symbol):
     try:
         data = yf.Ticker(symbol)
@@ -79,7 +87,9 @@ def evaluate_opportunity(symbol):
             reasons.append("🕯️ الشمعة صاعدة")
 
         recommendation = "✅ دخول" if score >= 2 else "⏳ انتظار"
-        entry_price = round(prev * 0.98, 2)
+        target_price = round(price * 1.025, 2)
+        exit_price = round(price * 1.035, 2)
+        best_entry = round(price * 0.99, 2)
 
         return {
             "symbol": symbol,
@@ -88,12 +98,15 @@ def evaluate_opportunity(symbol):
             "news": sentiment,
             "analyst": f"{buy} شراء / {sell} بيع / {hold} احتفاظ",
             "recommendation": recommendation,
-            "entry_price": entry_price,
-            "reason": " | ".join(reasons)
+            "reason": " | ".join(reasons),
+            "target": target_price,
+            "exit": exit_price,
+            "entry": best_entry
         }
     except:
         return None
 
+# عرض كرت السهم
 def show_stock_card(data):
     color = "green" if data["percent"] >= 0 else "red"
     st.markdown(f"""
@@ -104,11 +117,14 @@ def show_stock_card(data):
         <p style='color:white;'>📰 الأخبار: {data['news']}</p>
         <p style='color:yellow;'>👨‍💼 المحللون: {data['analyst']}</p>
         <p style='color:cyan; font-weight:bold;'>✅ التوصية: {data['recommendation']}</p>
-        <p style='color:lightgreen;'>💡 أفضل دخول: {data['entry_price']}$ (حسب تحليل الذكاء الصناعي)</p>
+        <p style='color:orange;'>🎯 الهدف: {data['target']} $</p>
+        <p style='color:red;'>🚪 الخروج: {data['exit']} $</p>
+        <p style='color:green;'>🟢 أفضل دخول: {data['entry']} $</p>
         <p style='color:orange;'>📌 السبب: {data['reason']}</p>
     </div>
     """, unsafe_allow_html=True)
 
+# واجهة المستخدم
 st.title("منصة فيصل - الذكاء الصناعي الحقيقي")
 query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
 
