@@ -1,129 +1,92 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import requests
-from streamlit_autorefresh import st_autorefresh
+import datetime
+import time
 
-# إعداد الصفحة
-st.set_page_config(page_title="منصة فيصل - الذكاء الصناعي الحقيقي", layout="wide")
-
-# تحديث تلقائي كل 5 ثواني
-st_autorefresh(interval=5000, key="auto-refresh")
-
-# إعدادات عامة
-FINNHUB_API_KEY = "ضع_مفتاحك_هنا"
-EODHD_API_KEY = "ضع_مفتاحك_هنا"
+USERNAME = "faisal"
+PASSWORD = "faisal2025"
 USD_TO_SAR = 3.75
-HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "GOOG", "AMZN", "NVDA"]
+UPDATE_INTERVAL = 5  # تحديث كل 5 ثواني
 
-# جلب الأخبار
-def get_news(symbol):
-    try:
-        url = f"https://eodhd.com/api/news?api_token={EODHD_API_KEY}&s={symbol}&limit=1"
-        res = requests.get(url)
-        articles = res.json()
-        if articles:
-            return articles[0]["title"]
-    except:
-        pass
-    return "لا توجد أخبار حالياً"
+HALAL_STOCKS = ["AAPL", "MSFT", "GOOG", "NVDA", "TSLA", "AMZN", "META", "ADBE", "CRM", "INTC"]
 
-# تحليل الأخبار
-def analyze_news(title):
-    positives = ["expands", "growth", "launch", "beat", "strong"]
-    negatives = ["cut", "miss", "drop", "loss", "decline"]
-    for word in positives:
-        if word in title.lower():
-            return "إيجابي"
-    for word in negatives:
-        if word in title.lower():
-            return "سلبي"
-    return "محايد"
+st.set_page_config(page_title="منصة فيصل - الأسهم الذكية", layout="wide")
 
-# توصيات المحللين
-def get_analyst_opinion(symbol):
-    try:
-        url = f"https://finnhub.io/api/v1/stock/recommendation?symbol={symbol}&token={FINNHUB_API_KEY}"
-        res = requests.get(url)
-        rec = res.json()
-        if rec:
-            latest = rec[0]
-            return latest["buy"], latest["sell"], latest["hold"]
-    except:
-        pass
-    return 0, 0, 0
+def login():
+    st.title("تسجيل الدخول")
+    username = st.text_input("اسم المستخدم")
+    password = st.text_input("كلمة المرور", type="password")
+    if st.button("دخول"):
+        if username == USERNAME and password == PASSWORD:
+            st.success("تم تسجيل الدخول بنجاح")
+            return True
+        else:
+            st.error("بيانات الدخول غير صحيحة")
+    return False
 
-# تحليل الذكاء الصناعي
-def evaluate_opportunity(symbol):
-    try:
-        data = yf.Ticker(symbol)
-        hist = data.history(period="2d")
-        if len(hist) < 2:
-            return None
+def fetch_stock_data(ticker):
+    data = yf.download(ticker, period="7d", interval="1h")
+    return data
 
-        price = hist["Close"].iloc[-1]
-        prev = hist["Close"].iloc[0]
-        change = price - prev
-        percent = (change / prev) * 100 if prev else 0
+def calculate_macd(df):
+    exp1 = df['Close'].ewm(span=12, adjust=False).mean()
+    exp2 = df['Close'].ewm(span=26, adjust=False).mean()
+    macd = exp1 - exp2
+    signal = macd.ewm(span=9, adjust=False).mean()
+    return macd, signal
 
-        news = get_news(symbol)
-        sentiment = analyze_news(news)
-        buy, sell, hold = get_analyst_opinion(symbol)
+def calculate_rsi(df, period=14):
+    delta = df["Close"].diff()
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    avg_gain = gain.rolling(window=period).mean()
+    avg_loss = loss.rolling(window=period).mean()
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
 
-        score = 0
-        reasons = []
+def ai_recommendation(df):
+    macd, signal = calculate_macd(df)
+    rsi = calculate_rsi(df)
+    latest_macd = macd.iloc[-1]
+    latest_signal = signal.iloc[-1]
+    latest_rsi = rsi.iloc[-1]
 
-        if sentiment == "إيجابي":
-            score += 1
-            reasons.append("📰 الأخبار إيجابية")
-        if change > 0:
-            score += 1
-            reasons.append("📈 السعر مرتفع")
-        if buy > sell:
-            score += 1
-            reasons.append("👨‍💼 عدد المشترين أعلى من البائعين")
+    price = df["Close"].iloc[-1]
+    target_price = round(price * 1.05, 2)
 
-        # تحليل الشمعة اليابانية
-        if price > prev:
-            reasons.append("🕯️ الشمعة صاعدة")
-
-        recommendation = "✅ دخول" if score >= 2 else "⏳ انتظار"
-        return {
-            "symbol": symbol,
-            "price": price,
-            "percent": percent,
-            "news": sentiment,
-            "analyst": f"{buy} شراء / {sell} بيع / {hold} احتفاظ",
-            "recommendation": recommendation,
-            "reason": " | ".join(reasons)
-        }
-    except:
-        return None
-
-# عرض كرت السهم
-def show_stock_card(data):
-    color = "green" if data["percent"] >= 0 else "red"
-    st.markdown(f"""
-    <div style='border:1px solid #444; border-radius:16px; padding:20px; margin-bottom:20px; background:#111;'>
-        <h4 style='color:white;'><img src='https://logo.clearbit.com/{data['symbol'].lower()}.com' width='28'> {data['symbol']}</h4>
-        <p style='color:white;'>السعر: {data['price'] * USD_TO_SAR:.2f} ريال / {data['price']}$</p>
-        <p style='color:{color}; font-weight:bold;'>% التغير: {data['percent']:.2f}+ </p>
-        <p style='color:white;'>📰 الأخبار: {data['news']}</p>
-        <p style='color:yellow;'>👨‍💼 المحللون: {data['analyst']}</p>
-        <p style='color:cyan; font-weight:bold;'>✅ التوصية: {data['recommendation']}</p>
-        <p style='color:orange;'>📌 السبب: {data['reason']}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# واجهة المستخدم
-st.title("منصة فيصل - الذكاء الصناعي الحقيقي")
-query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
-
-matches = [s for s in HALAL_STOCKS if s.startswith(query.upper())] if query else HALAL_STOCKS
-
-for symbol in matches:
-    result = evaluate_opportunity(symbol)
-    if result:
-        show_stock_card(result)
+    if latest_macd > latest_signal and latest_rsi < 70:
+        return "دخول قوي", f"السعر المستهدف: {target_price} USD", "السبب: MACD إيجابي و RSI أقل من 70"
+    elif latest_rsi > 70:
+        return "خروج", f"السعر الحالي مرتفع: {price} USD", "السبب: RSI مرتفع جدًا"
     else:
-        st.warning(f"⚠️ تعذر عرض بيانات {symbol}")
+        return "انتظار", f"السعر الحالي: {price} USD", "السبب: لا توجد إشارات واضحة"
+
+if login():
+    search = st.text_input("ابحث عن السهم (مثل AAPL):")
+    st.write(f"تحديث كل {UPDATE_INTERVAL} ثوانٍ...")
+
+    if search:
+        stock_symbol = search.upper()
+        if stock_symbol in HALAL_STOCKS:
+            data_load_state = st.text("جاري تحميل البيانات...")
+            data = fetch_stock_data(stock_symbol)
+            data_load_state.text("")
+
+            if not data.empty:
+                st.subheader(f"{stock_symbol} بيانات السهم")
+                price = data["Close"].iloc[-1]
+                st.metric(label="السعر الحالي", value=f"{price:.2f} USD", delta=f"{price * USD_TO_SAR:.2f} SAR")
+
+                reco, target, reason = ai_recommendation(data)
+                st.success(f"التوصية: {reco}")
+                st.info(target)
+                st.caption(reason)
+            else:
+                st.warning("لا توجد بيانات حالياً لهذا السهم.")
+        else:
+            st.error("السهم غير موجود في قائمة الأسهم الحلال.")
+
+    time.sleep(UPDATE_INTERVAL)
+    st.experimental_rerun()
