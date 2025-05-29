@@ -158,6 +158,10 @@ def show_stock_card(data):
     """, unsafe_allow_html=True)
 
 st.title("منصة فيصل - الذكاء الصناعي الحقيقي")
+st.title("منصة فيصل - الذكاء الصناعي الحقيقي")
+
+# ✅ زر عرض فرص الدخول فقط
+filter_entry = st.checkbox("✅ عرض فرص الدخول فقط")
 query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
 
 matches = [s for s in HALAL_STOCKS if s.startswith(query.upper())] if query else HALAL_STOCKS
