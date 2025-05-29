@@ -167,7 +167,7 @@ def show_stock_card(data):
     st.markdown(f"""
     <div style='border:1px solid #444; border-radius:16px; padding:20px; margin-bottom:20px; background:#111;'>
         <h4 style='color:white;'><img src='https://logo.clearbit.com/{data['symbol'].lower()}.com' width='28'> {data['symbol']}</h4>
-        <p style='color:white;'>السعر: {data['price'] * USD_TO_SAR:.2f} ريال / {data['price']}$</p>
+        <p style='color:white;'>السعر: {data['price'] * USD_TO_SAR:.2f} ريال / {data['price']:.2f}$</p>
         <p style='color:{color}; font-weight:bold;'>% التغير: {data['percent']:.2f}+ </p>
         <p style='color:white;'>📰 الأخبار: {data['news']}</p>
         <p style='color:yellow;'>👨‍💼 المحللون: {data['analyst']}</p>
