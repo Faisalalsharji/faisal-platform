@@ -36,7 +36,7 @@ def get_news(symbol):
         return None, None, None
     return None, None, None
 
-# تحليل الأسهم
+# تحليل كل سهم
 for symbol in WATCHLIST:
     try:
         data = yf.download(symbol, period="7d", interval="1h")
@@ -69,7 +69,7 @@ for symbol in WATCHLIST:
             success_rate += 10
             analysis.append("حجم تداول مرتفع")
 
-        last_closes = data['Close'].iloc[-3:]
+        last_closes = data['Close'].iloc[-3:].tolist()
         if all(x < y for x, y in zip(last_closes, last_closes[1:])):
             success_rate += 10
             analysis.append("نمط تصاعدي في الشموع")
@@ -99,7 +99,6 @@ for symbol in WATCHLIST:
     except Exception as e:
         st.error(f"❌ خطأ في تحليل {symbol}: {e}")
 
-# عرض أفضل 5 توصيات فقط
 recommendations = sorted(recommendations, key=lambda x: x['success_rate'], reverse=True)[:5]
 
 for rec in recommendations:
