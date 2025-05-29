@@ -75,10 +75,11 @@ for symbol in WATCHLIST:
             analysis.append("نمط تصاعدي في الشموع")
 
         news_headline, news_summary, news_url = get_news(symbol)
-        if news_headline and any(word in news_headline.lower() for word in ["beat", "growth", "partner", "up", "record"]):
+
+        if isinstance(news_headline, str) and any(word in news_headline.lower() for word in ["beat", "growth", "partner", "up", "record"]):
             success_rate += 5
             analysis.append("خبر إيجابي")
-        elif news_headline and any(word in news_headline.lower() for word in ["drop", "loss", "lawsuit", "investigation"]):
+        elif isinstance(news_headline, str) and any(word in news_headline.lower() for word in ["drop", "loss", "lawsuit", "investigation"]):
             success_rate -= 10
             analysis.append("خبر سلبي")
 
@@ -109,7 +110,7 @@ for rec in recommendations:
     st.markdown(f"**🔢 نسبة نجاح التوصية:** ✅ {rec['success_rate']}%")
     st.markdown(f"**⏰ وقت التوصية:** {rec['time']}")
 
-    if rec['news']:
+    if isinstance(rec['news'], str):
         st.markdown(f"**📰 أهم خبر:** [{rec['news']}]({rec['url']})")
 
     fig = go.Figure()
