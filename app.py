@@ -81,14 +81,17 @@ def smart_ai_recommendation(symbol):
         rsi = 100 - (100 / (1 + rs))
         latest_rsi = rsi.iloc[-1]
 
+        whale_entry = "🐋 دخول حيتان" if volume_today > volume_avg * 1.5 else ""
+
         if macd.iloc[-1] > signal.iloc[-1] and volume_today > volume_avg and latest_rsi < 70:
-            return {"recommendation": "✅ دخول ذكي", "reason": "MACD إيجابي + حجم تداول مرتفع + RSI جيد"}
+            return {"recommendation": "✅ دخول ذكي", "reason": f"MACD إيجابي + حجم تداول مرتفع + RSI جيد {whale_entry}"}
         elif macd.iloc[-1] < signal.iloc[-1] or latest_rsi > 70:
             return {"recommendation": "🚪 خروج ذكي", "reason": "MACD سلبي أو RSI مرتفع (تشبع شراء)"}
         else:
             return {"recommendation": "⏳ انتظار", "reason": "لا توجد إشارة واضحة من MACD أو RSI"}
     except:
         return {"recommendation": "⚠️ خطأ", "reason": "تعذر تحليل السهم"}
+
 def evaluate_opportunity(symbol):
     try:
         data = yf.Ticker(symbol)
@@ -164,9 +167,9 @@ def show_stock_card(data):
         <p style='color:#FFA500;'>📊 تحليل AI: {data['ai_reason']}</p>
     </div>
     """, unsafe_allow_html=True)
+
 st.title("Faisal 📿")
 
-# ✅ زر عرض فرص الدخول فقط
 filter_entry = st.checkbox("✅ عرض فرص الدخول فقط")
 query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
 
@@ -179,16 +182,13 @@ for symbol in matches:
     if result:
         results.append(result)
 
-# 🔍 فلترة الأسهم حسب خيار المستخدم
 if filter_entry:
     filtered_results = [r for r in results if r["recommendation"] == "✅ دخول"]
 else:
     filtered_results = results
 
-# ⚠️ في حال ما وُجدت أي نتائج
 if not filtered_results:
     st.warning("⚠️ لا توجد حالياً فرص دخول حسب التحليل")
 
-# ✅ عرض البطاقات
 for r in filtered_results:
     show_stock_card(r)
