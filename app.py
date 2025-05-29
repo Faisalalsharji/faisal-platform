@@ -81,16 +81,25 @@ def smart_ai_recommendation(symbol):
         rsi = 100 - (100 / (1 + rs))
         latest_rsi = rsi.iloc[-1]
 
-        whale_entry = "🐋 دخول حيتان" if volume_today > volume_avg * 1.5 else ""
-
         if macd.iloc[-1] > signal.iloc[-1] and volume_today > volume_avg and latest_rsi < 70:
-            return {"recommendation": "✅ دخول ذكي", "reason": f"MACD إيجابي + حجم تداول مرتفع + RSI جيد {whale_entry}"}
+            return {"recommendation": "✅ دخول ذكي", "reason": "MACD إيجابي + حجم تداول مرتفع + RSI جيد"}
         elif macd.iloc[-1] < signal.iloc[-1] or latest_rsi > 70:
             return {"recommendation": "🚪 خروج ذكي", "reason": "MACD سلبي أو RSI مرتفع (تشبع شراء)"}
         else:
             return {"recommendation": "⏳ انتظار", "reason": "لا توجد إشارة واضحة من MACD أو RSI"}
     except:
         return {"recommendation": "⚠️ خطأ", "reason": "تعذر تحليل السهم"}
+
+def whale_activity(volume_today, volume_avg):
+    try:
+        if volume_today > volume_avg * 1.5:
+            return "شراء كثيف"
+        elif volume_today < volume_avg * 0.5:
+            return "بيع كثيف"
+        else:
+            return "محايد"
+    except:
+        return "غير معروف"
 
 def evaluate_opportunity(symbol):
     try:
@@ -108,6 +117,10 @@ def evaluate_opportunity(symbol):
         sentiment = analyze_news(news)
         buy, sell, hold = get_analyst_opinion(symbol)
         ai = smart_ai_recommendation(symbol)
+
+        volume_today = hist["Volume"].iloc[-1]
+        volume_avg = hist["Volume"].mean()
+        whales = whale_activity(volume_today, volume_avg)
 
         score = 0
         reasons = []
@@ -143,7 +156,8 @@ def evaluate_opportunity(symbol):
             "exit_price": exit_price,
             "estimated_days": estimated_days,
             "ai_recommendation": ai["recommendation"],
-            "ai_reason": ai["reason"]
+            "ai_reason": ai["reason"],
+            "whales": whales
         }
     except:
         return None
@@ -165,6 +179,7 @@ def show_stock_card(data):
         <p style='color:#87CEEB;'>🕐 المدة المتوقعة: {data['estimated_days']}</p>
         <p style='color:lightgreen;'>🤖 الذكاء الصناعي: {data['ai_recommendation']}</p>
         <p style='color:#FFA500;'>📊 تحليل AI: {data['ai_reason']}</p>
+        <p style='color:#00FFFF;'>🐋 نشاط الحيتان: {data['whales']}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -174,7 +189,6 @@ filter_entry = st.checkbox("✅ عرض فرص الدخول فقط")
 query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
 
 matches = [s for s in HALAL_STOCKS if s.startswith(query.upper())] if query else HALAL_STOCKS
-
 results = []
 
 for symbol in matches:
@@ -182,13 +196,11 @@ for symbol in matches:
     if result:
         results.append(result)
 
-if filter_entry:
-    filtered_results = [r for r in results if r["recommendation"] == "✅ دخول"]
-else:
-    filtered_results = results
+filtered_results = [r for r in results if r["recommendation"] == "✅ دخول"] if filter_entry else results
 
 if not filtered_results:
     st.warning("⚠️ لا توجد حالياً فرص دخول حسب التحليل")
 
 for r in filtered_results:
     show_stock_card(r)
+    
