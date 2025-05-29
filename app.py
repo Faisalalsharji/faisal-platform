@@ -167,7 +167,7 @@ matches = [s for s in HALAL_STOCKS if s.startswith(query.upper())] if query else
 
 for symbol in matches:
     result = evaluate_opportunity(symbol)
-    if result:
+    if result and (not filter_entry or result["recommendation"] == "✅ دخول"):
         show_stock_card(result)
     else:
         st.warning(f"⚠️ تعذر عرض بيانات {symbol}")
