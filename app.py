@@ -166,9 +166,9 @@ def evaluate_opportunity(symbol):
 def show_stock_card(data):
     color = "green" if data["percent"] >= 0 else "red"
 
+    # تحليل ذكي إضافي (عشوائي لأغراض العرض)
     ai_target = round(data["price"] * random.uniform(1.04, 1.12), 2)
     ai_probability = round(random.uniform(65, 90), 1)
-    ai_sentiment = data["news"]
     rsi_value = random.randint(30, 80)
     macd_signal = random.choice(["صاعد", "هابط", "تقاطع قريب"])
     candle = random.choice(["شمعة ابتلاعية صاعدة", "شمعة دوجي", "شمعة انعكاسية"])
@@ -177,34 +177,31 @@ def show_stock_card(data):
     st.markdown(f"""
     <div style='border:1px solid #444; border-radius:16px; padding:20px; margin-bottom:20px; background:#111;'>
         <h4 style='color:white;'><img src='https://logo.clearbit.com/{data['symbol'].lower()}.com' width='28'> {data['symbol']}</h4>
-        <p style='color:white;'>السعر: {data['price'] * USD_TO_SAR:.2f} ريال / {data['price']}$</p>
-        <p style='color:{color}; font-weight:bold;'>% التغير: {data['percent']:.2f}+ </p>
-        <p style='color:white;'>📰 الأخبار: {data['news']}</p>
-        <p style='color:yellow;'>👨‍💼 المحللون: {data['analyst']}</p>
-        <p style='color:cyan; font-weight:bold;'>✅ التوصية: {data['recommendation']}</p>
-        <p style='color:orange;'>📌 السبب: {data['reason']}</p>
+        <p style='color:white;'>السعر: {data['price'] * USD_TO_SAR:.2f} ريال / {data['price']:.2f}$</p>
+        <p style='color:{color}; font-weight:bold;'>% التغير: {data['percent']:.2f}</p>
+        <p style='color:cyan;'>التوصية العامة: {data['recommendation']}</p>
+        <p style='color:lightgreen;'>🤖 الذكاء الصناعي: {data['ai_recommendation']}</p>
         <p style='color:lime;'>💡 أفضل دخول: {data['entry_price']}$</p>
         <p style='color:#00FF99;'>🎯 الهدف: {data['target_price']}$</p>
         <p style='color:#FFCC00;'>🚪 الخروج: عند {data['exit_price']}$</p>
-        <p style='color:#87CEEB;'>🕐 المدة المتوقعة: {data['estimated_days']}</p>
-        <p style='color:lightgreen;'>🤖 الذكاء الصناعي: {data['ai_recommendation']}</p>
-        <p style='color:#FFA500;'>📊 تحليل AI: {data['ai_reason']}</p>
+        <p style='color:#87CEEB;'>📆 المدة المتوقعة: {data['estimated_days']}</p>
         <p style='color:#00FFFF;'>🐋 نشاط الحيتان: {data['whales']}</p>
-        <hr>
-        <h5 style='color:#00bfa6;'>🔍 التحليل الذكي الإضافي:</h5>
-        <ul style='color:white;'>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.expander("🔍 عرض التحليل الذكي الإضافي"):
+        st.markdown(f"""
+        <ul style='color:white; line-height:2.0;'>
             <li>🎯 السعر المتوقع خلال 3 أيام: <b>{ai_target}$</b></li>
             <li>📈 نسبة التغير المحتملة: <b>{ai_probability}%</b></li>
-            <li>📰 تأثير الأخبار: <b>{ai_sentiment}</b></li>
             <li>📉 RSI: {rsi_value} — {rsi_status}</li>
             <li>📊 MACD: {macd_signal}</li>
             <li>🕯️ الشمعة الفنية: {candle}</li>
         </ul>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-# واجهة البحث
-st.title("Faisal 📿")
+# الواجهة الرئيسية
+st.title("📊 منصة فيصل - الذكاء الصناعي الحقيقي")
 
 filter_entry = st.checkbox("✅ عرض فرص الدخول فقط")
 query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
