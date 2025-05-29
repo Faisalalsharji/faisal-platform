@@ -21,7 +21,6 @@ if not os.path.exists(TRACK_FILE):
 
 recommendations = []
 
-# دالة جلب الأخبار من Finnhub
 def get_news(symbol):
     try:
         url = f"https://finnhub.io/api/v1/company-news?symbol={symbol}&from={(datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d')}&to={datetime.now().strftime('%Y-%m-%d')}&token={FINNHUB_API_KEY}"
@@ -37,15 +36,15 @@ def get_news(symbol):
         return None, None, None
     return None, None, None
 
-# تحليل كل سهم
+# تحليل الأسهم
 for symbol in WATCHLIST:
     try:
         data = yf.download(symbol, period="7d", interval="1h")
         if data.empty:
             continue
 
-        rsi = RSIIndicator(close=data["Close"]).rsi()
-        macd = MACD(close=data["Close"]).macd_diff()
+        rsi = RSIIndicator(close=data["Close"].squeeze()).rsi()
+        macd = MACD(close=data["Close"].squeeze()).macd_diff()
         volume = data["Volume"]
 
         latest_rsi = rsi.iloc[-1]
@@ -75,7 +74,6 @@ for symbol in WATCHLIST:
             success_rate += 10
             analysis.append("نمط تصاعدي في الشموع")
 
-        # الأخبار
         news_headline, news_summary, news_url = get_news(symbol)
         if news_headline and any(word in news_headline.lower() for word in ["beat", "growth", "partner", "up", "record"]):
             success_rate += 5
@@ -101,6 +99,7 @@ for symbol in WATCHLIST:
     except Exception as e:
         st.error(f"❌ خطأ في تحليل {symbol}: {e}")
 
+# عرض أفضل 5 توصيات فقط
 recommendations = sorted(recommendations, key=lambda x: x['success_rate'], reverse=True)[:5]
 
 for rec in recommendations:
