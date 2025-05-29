@@ -165,9 +165,23 @@ query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط 
 
 matches = [s for s in HALAL_STOCKS if s.startswith(query.upper())] if query else HALAL_STOCKS
 
+results = []
+
 for symbol in matches:
     result = evaluate_opportunity(symbol)
-    if result and (not filter_entry or result["recommendation"] == "✅ دخول"):
-        show_stock_card(result)
-    else:
-        st.warning(f"⚠️ تعذر عرض بيانات {symbol}")
+    if result:
+        results.append(result)
+
+# 🔍 فلترة الأسهم حسب خيار المستخدم
+if filter_entry:
+    filtered_results = [r for r in results if r["recommendation"] == "✅ دخول"]
+else:
+    filtered_results = results
+
+# ⚠️ في حال ما وُجدت أي نتائج
+if not filtered_results:
+    st.warning("⚠️ لا توجد حالياً فرص دخول حسب التحليل")
+
+# ✅ عرض البطاقات
+for r in filtered_results:
+    show_stock_card(r)
