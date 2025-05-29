@@ -11,7 +11,7 @@ st_autorefresh(interval=5000, key="auto-refresh")
 FINNHUB_API_KEY = "مفتاحك"
 EODHD_API_KEY = "مفتاحك"
 USD_TO_SAR = 3.75
-HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "NTCL", "GOOG", "AMZN", "NVDA"]
+HALAL_STOCKS = ["AAPL", "GOOG", "MSFT", "NVDA", "TSLA", "AMZN", "META", "HOLO"]
 
 def get_news(symbol):
     try:
