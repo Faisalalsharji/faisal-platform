@@ -7,7 +7,7 @@ from streamlit_autorefresh import st_autorefresh
 st.set_page_config(page_title="منصة فيصل - الذكاء الصناعي الحقيقي", layout="wide")
 st_autorefresh(interval=5000, key="auto-refresh")
 
-FINNHUB_API_KEY = "مفتاحك"
+FINNHUB_API_KEY = "d0s6679r01qkkplt7flgd0s6679r01qkkplt7fm0"
 EODHD_API_KEY = "مفتاحك"
 USD_TO_SAR = 3.75
 HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "NTCL", "GOOG", "AMZN", "NVDA"]
