@@ -72,15 +72,23 @@ def smart_ai_recommendation(symbol):
         macd = short_ema - long_ema
         signal = macd.ewm(span=9, adjust=False).mean()
 
-        if macd.iloc[-1] > signal.iloc[-1] and volume_today > volume_avg:
-            return {"recommendation": "✅ دخول ذكي", "reason": "MACD إيجابي + حجم تداول مرتفع"}
-        elif macd.iloc[-1] < signal.iloc[-1]:
-            return {"recommendation": "🚪 خروج ذكي", "reason": "MACD سلبي"}
+        delta = hist["Close"].diff()
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
+        avg_gain = gain.rolling(window=14).mean()
+        avg_loss = loss.rolling(window=14).mean()
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+        latest_rsi = rsi.iloc[-1]
+
+        if macd.iloc[-1] > signal.iloc[-1] and volume_today > volume_avg and latest_rsi < 70:
+            return {"recommendation": "✅ دخول ذكي", "reason": "MACD إيجابي + حجم تداول مرتفع + RSI جيد"}
+        elif macd.iloc[-1] < signal.iloc[-1] or latest_rsi > 70:
+            return {"recommendation": "🚪 خروج ذكي", "reason": "MACD سلبي أو RSI مرتفع (تشبع شراء)"}
         else:
-            return {"recommendation": "⏳ انتظار", "reason": "لا توجد إشارة واضحة"}
+            return {"recommendation": "⏳ انتظار", "reason": "لا توجد إشارة واضحة من MACD أو RSI"}
     except:
         return {"recommendation": "⚠️ خطأ", "reason": "تعذر تحليل السهم"}
-
 def evaluate_opportunity(symbol):
     try:
         data = yf.Ticker(symbol)
@@ -156,7 +164,6 @@ def show_stock_card(data):
         <p style='color:#FFA500;'>📊 تحليل AI: {data['ai_reason']}</p>
     </div>
     """, unsafe_allow_html=True)
-
 st.title("Faisal 📿")
 
 # ✅ زر عرض فرص الدخول فقط
