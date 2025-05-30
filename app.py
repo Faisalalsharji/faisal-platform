@@ -2,15 +2,16 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import requests
-from streamlit_autorefresh import st_autorefresh
+import datetime
 
-st.set_page_config(page_title="منصة فيصل - الذكاء الصناعي الحقيقي", layout="wide")
-st_autorefresh(interval=5000, key="auto-refresh")
+st.set_page_config(page_title="منصة فيصل - توصيات AI الذكية", layout="wide")
 
 FINNHUB_API_KEY = "مفتاحك"
 EODHD_API_KEY = "مفتاحك"
 USD_TO_SAR = 3.75
 HALAL_STOCKS = ["AAPL", "MSFT", "TSLA", "NTCL", "GOOG", "AMZN", "NVDA"]
+
+VALIDITY_DAYS = 5  # صلاحية التوصية
 
 def get_news(symbol):
     try:
@@ -142,6 +143,7 @@ def evaluate_opportunity(symbol):
         target_price = round(price + (price * 0.03), 2)
         exit_price = round(price + (price * 0.04), 2)
         estimated_days = estimate_days_to_target(percent)
+        valid_until = datetime.date.today() + datetime.timedelta(days=VALIDITY_DAYS)
 
         return {
             "symbol": symbol,
@@ -157,7 +159,8 @@ def evaluate_opportunity(symbol):
             "estimated_days": estimated_days,
             "ai_recommendation": ai["recommendation"],
             "ai_reason": ai["reason"],
-            "whales": whales
+            "whales": whales,
+            "valid_until": valid_until.isoformat()
         }
     except:
         return None
@@ -177,13 +180,14 @@ def show_stock_card(data):
         <p style='color:#00FF99;'>🎯 الهدف: {data['target_price']}$</p>
         <p style='color:#FFCC00;'>🚪 الخروج: عند {data['exit_price']}$</p>
         <p style='color:#87CEEB;'>🕐 المدة المتوقعة: {data['estimated_days']}</p>
+        <p style='color:#FFFFFF;'>📅 صلاحية التوصية حتى: {data['valid_until']}</p>
         <p style='color:lightgreen;'>🤖 الذكاء الصناعي: {data['ai_recommendation']}</p>
         <p style='color:#FFA500;'>📊 تحليل AI: {data['ai_reason']}</p>
         <p style='color:#00FFFF;'>🐋 نشاط الحيتان: {data['whales']}</p>
     </div>
     """, unsafe_allow_html=True)
 
-st.title("Faisal 📿")
+st.title("🧠 منصة فيصل - توصيات AI الذكية")
 
 filter_entry = st.checkbox("✅ عرض فرص الدخول فقط")
 query = st.text_input("🔍 ابحث عن سهم (اكتب أول حرف فقط مثلاً A)")
@@ -203,4 +207,3 @@ if not filtered_results:
 
 for r in filtered_results:
     show_stock_card(r)
-    
