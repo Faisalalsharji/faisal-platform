@@ -9,27 +9,9 @@ st.set_page_config(page_title="منصة فيصل - توصيات AI الذكية"
 FINNHUB_API_KEY = "مفتاحك"
 EODHD_API_KEY = "مفتاحك"
 USD_TO_SAR = 3.75
-halal_strong_us_20 = [
-    "AAPL",  # Apple
-    "MSFT",  # Microsoft
-    "GOOG",  # Google
-    "AMZN",  # Amazon
-    "NVDA",  # Nvidia
-    "META",  # Meta (Facebook)
-    "TSLA",  # Tesla
-    "AVGO",  # Broadcom
-    "ORCL",  # Oracle
-    "INTC",  # Intel
-    "AMD",   # AMD
-    "TXN",   # Texas Instruments
-    "QCOM",  # Qualcomm
-    "ADBE",  # Adobe
-    "CRM",   # Salesforce
-    "ASML",  # ASML Holding
-    "LRCX",  # Lam Research
-    "KLAC",  # KLA Corp
-    "PYPL",  # PayPal
-    "UBER"   # Uber
+HALAL_STOCKS = [
+    "AAPL", "MSFT", "GOOG", "AMZN", "NVDA", "META", "TSLA", "AVGO", "ORCL", "INTC",
+    "AMD", "TXN", "QCOM", "ADBE", "CRM", "ASML", "LRCX", "KLAC", "PYPL", "UBER"
 ]
 
 VALIDITY_DAYS = 5  # صلاحية التوصية
